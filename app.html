@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#F2F2F7" id="theme-color-meta">
+    <title>MEMO-TEN-O · 데모</title>
+    <!-- FontAwesome을 제거하고, 애플 감성에 맞는 얇고 둥근 Lucide 아이콘을 사용합니다 -->
+        <style>
+        :root {
+            --theme-color: #22C55E;   /* 4개 앱 공통 대표색 (⋯ 메뉴의 테마 색에서 바꿀 수 있음) */
+            --theme-ink: color-mix(in srgb, var(--theme-color) 65%, #000);   /* 밝은 화면의 글자·아이콘용 (파스텔 색도 잘 보이게) */
+            --apple-yellow: var(--theme-ink);
+            --ios-blue: var(--theme-ink);
+            --bg-sidebar: #F2F2F7;
+            --bg-editor: #FFFFFF;
+            --bg-card: #FFFFFF;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --hover-bg: #E5E5EA;
+            --active-bg: color-mix(in srgb, var(--theme-color) 22%, #FFFFFF);
+            --radius-main: 16px;
+            --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] {
+            --theme-ink: var(--theme-color);   /* 어두운 화면에서는 대표색 그대로 */
+            --bg-sidebar: #0F0F0F;
+            --bg-editor: #0F0F0F;
+            --bg-card: #1C1C1E;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #FAFAFA;
+            --text-secondary: #A0A0A0;
+            --hover-bg: #2C2C2E;
+            --active-bg: color-mix(in srgb, var(--theme-color) 24%, #1C1C1E);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; height: 100dvh; background-color: var(--bg-editor); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; color: var(--text-primary); overflow: hidden; -webkit-touch-callout: default; letter-spacing: -0.3px; }
+        
+        /* 다이나믹 아일랜드 / Safe Area 대응 */
+        .app-container { display: flex; height: 100%; width: 100%; position: relative; overflow: hidden; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+        
+        .btn-icon { background: none; border: none; color: var(--apple-yellow); cursor: pointer; transition: opacity 0.2s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); display: flex; align-items: center; justify-content: center; }
+        .btn-icon:hover { opacity: 0.6; }
+        .btn-icon:active { transform: scale(0.85); opacity: 0.4; }
+        .btn-icon svg { width: 22px; height: 22px; stroke-width: 1.5; pointer-events: none; }
+
+        /* 1. 왼쪽 사이드바 (메모 목록) */
+        .sidebar { width: 350px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 10; position: relative; padding-bottom: 80px; transition: background-color 0.3s, border-color 0.3s; }
+        
+        .sidebar-header { padding: 15px 20px 10px 20px; }
+        .sidebar-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .sidebar-title-row .btn-icon { color: var(--apple-yellow); }
+        
+        /* 하단 플로팅 검색 바 (아이클라우드 스타일) */
+        .sidebar-bottom-toolbar { position: absolute; bottom: 20px; left: 15px; right: 15px; display: flex; gap: 12px; align-items: center; z-index: 20; }
+        .sidebar-search-pill { flex-grow: 1; display: flex; align-items: center; background: var(--bg-card); padding: 10px 15px; border-radius: 30px; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); transition: box-shadow 0.3s ease, transform 0.3s ease, background 0.3s; }
+        [data-theme="dark"] .sidebar-search-pill { box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-search-pill:focus-within { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-1px); }
+        [data-theme="dark"] .sidebar-search-pill:focus-within { box-shadow: 0 6px 20px rgba(0,0,0,0.6); }
+        .sidebar-search-pill input { border: none; background: transparent; outline: none; width: 100%; font-size: 15px; color: var(--text-primary); }
+        .sidebar-search-pill input::placeholder { color: var(--text-secondary); }
+        .sidebar-search-pill svg { color: var(--text-secondary); width: 18px; height: 18px; flex-shrink: 0; }
+        
+        .sidebar-new-note-btn { width: 44px; height: 44px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; color: var(--text-primary); cursor: pointer; flex-shrink: 0; border: none; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.06); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s; }
+        [data-theme="dark"] .sidebar-new-note-btn { box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-new-note-btn svg { width: 22px; height: 22px; stroke-width: 1.5; pointer-events: none; }
+        .sidebar-new-note-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .sidebar-new-note-btn:active { transform: translateY(0) scale(0.95); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+
+        /* 리스트 영역 */
+        .note-list-container { flex-grow: 1; overflow-y: auto; padding: 0 15px; }
+        .list-section-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); padding: 15px 5px 8px; text-transform: capitalize; }
+        .note-list { list-style: none; display: flex; flex-direction: column; background-color: var(--bg-card); border-radius: var(--radius-main); box-shadow: var(--shadow-soft); overflow: hidden; margin-bottom: 20px; transition: box-shadow 0.3s ease; }
+        .note-list:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.06); }
+        
+        .note-item { padding: 0; cursor: default; position: relative; overflow: hidden; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        
+        .note-item.active .note-item-front { background-color: var(--active-bg); }
+        
+        .note-item-front {
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 14px 16px; background-color: var(--bg-card);
+            position: relative; z-index: 2;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+            cursor: pointer; width: 100%; box-sizing: border-box;
+            touch-action: pan-y;
+        }
+        .note-item-front:hover { background-color: #f9f9f9; }
+        .note-item-front:active { background-color: #f2f2f7; }
+        [data-theme="dark"] .note-item-front { background-color: #1c1c1e; }
+        [data-theme="dark"] .note-item-front:hover { background-color: #2c2c2e; }
+        
+        .note-item-actions {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: flex-end; z-index: 1; height: 100%;
+            padding-right: 16px; gap: 8px; box-sizing: border-box;
+            background-color: transparent;
+        }
+        .note-item-actions.left {
+            left: 0; right: auto; padding-left: 16px; padding-right: 0; justify-content: flex-start;
+        }
+        .note-swipe-btn {
+            height: 44px; display: flex; flex-direction: row; align-items: center; justify-content: center;
+            border: none; color: white; cursor: pointer; padding: 0 18px; margin: 0; outline: none; border-radius: 22px; box-sizing: border-box;
+            transition: transform 0.15s, opacity 0.2s; gap: 6px;
+            white-space: nowrap;
+        }
+        .note-swipe-btn svg, .note-swipe-btn .btn-text { flex-shrink: 0; }
+        .note-swipe-btn .btn-text {
+            font-size: 14px; font-weight: 500; letter-spacing: -0.2px; line-height: 1;
+        }
+        .note-swipe-btn:active { transform: scale(0.9); }
+        .note-swipe-btn.move { background-color: #5856d6; }
+        .note-swipe-btn.delete { background-color: #ff3b30; }
+        .note-swipe-btn.pin { background-color: #ff9500; }
+        
+        [data-theme="dark"] .note-swipe-btn.move { background-color: #5e5ce6; }
+        [data-theme="dark"] .note-swipe-btn.delete { background-color: #ff453a; }
+        [data-theme="dark"] .note-swipe-btn.pin { background-color: #ff9f0a; }
+
+        .note-item:last-child { border-bottom: none; }
+        
+        
+        
+        
+        .note-item-content { display: flex; flex-direction: column; gap: 4px; overflow: hidden; flex-grow: 1; padding-right: 12px; }
+        .note-item-title-row { display: flex; align-items: center; gap: 6px; }
+        .note-item-title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); letter-spacing: -0.3px; }
+        .note-item-meta { display: flex; font-size: 14px; color: var(--text-secondary); gap: 8px; align-items: center; }
+        .note-item-time { font-weight: 500; flex-shrink: 0; }
+        .note-item-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
+        
+        .note-item-thumbnail { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background-color: #f2f2f7; }
+
+        /* 2. 오른쪽 메인 에디터 */
+        .main-editor { flex-grow: 1; background-color: var(--bg-editor); display: flex; flex-direction: column; position: relative; min-width: 0; }
+        
+        /* 상단 헤더 */
+        .editor-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; z-index: 10; border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+        .editor-header.scrolled { border-bottom-color: var(--border-color); }
+        .header-left, .header-right { display: flex; align-items: center; gap: 20px; }
+        
+        .pin-btn.pinned { fill: var(--apple-yellow); color: var(--apple-yellow); }
+
+        .editor-content { flex-grow: 1; padding: 0 40px; overflow-y: auto; display: block; position: relative; }
+        
+        
+        
+        .date-display { font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 20px; font-weight: 500; }
+        
+        /* 전용 제목 입력창 */
+        .title-input { font-size: 28px; font-weight: 700; border: none; outline: none; margin-bottom: 10px; color: var(--text-primary); width: 100%; background: transparent; font-family: inherit; -webkit-user-select: text; user-select: text; }
+        .title-input[data-placeholder]:empty:before { content: attr(data-placeholder); color: #c7c7cc; cursor: text; }
+        .title-input br { display: none; } /* prevent extra spaces on empty */
+        
+        /* 본문 입력창 (Rich Text) */
+        .editor-bottom-spacer { display: block; width: 100%; height: 85vh; min-height: 500px; pointer-events: auto; cursor: text; }
+        .body-editor { font-size: 17px; line-height: 1.6; outline: none; color: var(--text-primary); min-height: 300px; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; -webkit-user-select: text; user-select: text; padding-bottom: 20px; }
+        .body-editor[data-placeholder]:empty:before { content: attr(data-placeholder); color: #c7c7cc; cursor: text; }
+        .body-editor img { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; display: block; }
+
+        /* 체크리스트 스타일 */
+        .body-editor ul { list-style: none; padding-left: 0; margin: 10px 0; }
+        .body-editor ul li { position: relative; padding-left: 32px; margin-bottom: 6px; min-height: 24px; }
+        .body-editor ul li::before { content: ''; position: absolute; left: 2px; top: 2px; width: 20px; height: 20px; border: 1.5px solid var(--border-color); border-radius: 50%; cursor: pointer; box-sizing: border-box; transition: all 0.2s; }
+        .body-editor ul li.checked::before { background-color: var(--theme-color); border-color: var(--theme-color); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E"); background-size: 12px; background-position: center; background-repeat: no-repeat; }
+                .body-editor ul li.checked { color: var(--text-secondary); text-decoration: line-through; }
+
+        /* 하단 플로팅 툴바 (아이클라우드 스타일) */
+        .bottom-toolbar-wrapper { position: absolute; bottom: 25px; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none; z-index: 50; padding: 0 20px; opacity: 0; transform: translateY(20px); transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .bottom-toolbar-wrapper.show { opacity: 1; transform: translateY(0); pointer-events: none; }
+        
+        /* 좌측 캡슐형 툴바 */
+        .bottom-tools-capsule { pointer-events: auto; display: flex; cursor: text; gap: 20px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05); transition: background 0.3s; }
+        [data-theme="dark"] .bottom-tools-capsule { background: rgba(44, 44, 46, 0.85); border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .tool-btn { background: none; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .tool-btn > svg, .tool-btn > i { transition: opacity 0.2s; }
+        .tool-btn:hover > svg, .tool-btn:hover > i { opacity: 0.6; }
+        .tool-btn:active { transform: scale(0.85); }
+        .tool-btn:active > svg, .tool-btn:active > i { opacity: 0.4; }
+        .tool-btn svg { width: 22px; height: 22px; stroke-width: 1.5; pointer-events: none; }
+        
+        /* 우측 새 메모 버튼 (독립된 원형) */
+        .new-note-floating { position: absolute; right: 30px; bottom: 25px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 12px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.05); pointer-events: none; color: var(--apple-yellow); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 51; opacity: 0; transform: translateY(20px) scale(1); transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s; }
+        [data-theme="dark"] .new-note-floating { background: rgba(44, 44, 46, 0.85); border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .new-note-floating.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .new-note-floating.show:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .new-note-floating.show:active { transform: translateY(0) scale(0.92); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .new-note-floating svg { width: 24px; height: 24px; stroke-width: 1.5; pointer-events: none; }
+
+        /* 상태 메세지 (빈 화면) */
+        .empty-state { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-editor); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-secondary); z-index: 100; }
+        
+        /* AI 로딩 오버레이 (iOS 스타일) */
+        .ai-loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease-out; }
+        [data-theme="dark"] .ai-loading-overlay { background: rgba(0, 0, 0, 0.4); }
+        .ai-loading-overlay.show { display: flex; opacity: 1; }
+
+        .ai-loading-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .ai-loading-overlay.show .ai-loading-card { transform: scale(1); }
+
+        .ai-orb-container { position: relative; display: flex; align-items: center; justify-content: center; }
+        .ai-orb-container svg { width: 44px; height: 44px; color: var(--apple-yellow); animation: pulseIcon 1.5s ease-in-out infinite alternate; filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--theme-color) 35%, transparent)); }
+
+        @keyframes pulseIcon { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.1); opacity: 1; } }
+
+        .ai-loading-title { font-size: 17px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.4px; }
+
+        /* iOS AI 참고용 결과 시트 */
+        .ai-result-sheet { background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); width: calc(100% - 40px); max-width: 520px; max-height: 80vh; border-radius: 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18); border: 1px solid rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; overflow: hidden; transform: scale(0.95); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+        [data-theme="dark"] .ai-result-sheet { background: rgba(36, 36, 38, 0.94); border-color: rgba(255, 255, 255, 0.12); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+        .modal-overlay.show .ai-result-sheet { transform: scale(1); }
+
+        .ai-result-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px 20px; border-bottom: 1px solid var(--border-color); }
+        .ai-result-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--apple-yellow); background: color-mix(in srgb, var(--theme-color) 15%, transparent); padding: 4px 10px; border-radius: 20px; }
+        .ai-result-badge svg { width: 14px; height: 14px; }
+        .ai-result-subtitle { font-size: 17px; font-weight: 700; color: var(--text-primary); margin-top: 4px; }
+        .ai-result-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-card); border: none; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, color 0.2s; }
+        .ai-result-close-btn:hover { background: rgba(0, 0, 0, 0.08); color: var(--text-primary); }
+
+        .ai-result-content { padding: 20px; overflow-y: auto; font-size: 15px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; user-select: text; -webkit-user-select: text; max-height: 50vh; word-break: break-word; }
+        .ai-result-footer { padding: 14px 20px; display: flex; gap: 8px; border-top: 1px solid var(--border-color); background: rgba(0, 0, 0, 0.02); }
+        .ios-action-btn { flex: 1; padding: 12px 16px; border-radius: 12px; font-size: 15px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: transform 0.15s, opacity 0.15s, background 0.2s; }
+        .ios-action-btn:active { transform: scale(0.97); }
+        .ios-action-btn.primary { background: var(--theme-color); color: #000; }
+        .ios-action-btn.secondary { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); }
+
+        /* 마크업 모달 */
+        .markup-overlay { flex-direction: column; background: var(--bg-editor); display: none; opacity: 0; transition: opacity 0.3s; z-index: 1000; position: fixed; top: 0; left: 0; right: 0; bottom: 0; }
+        .markup-overlay.show { opacity: 1; }
+        .markup-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; width: 100%; border-bottom: 1px solid var(--border-color); background: var(--bg-card); z-index: 10; }
+        .markup-btn { background: none; border: none; font-size: 17px; color: var(--ios-blue); cursor: pointer; }
+        .markup-btn.done { font-weight: 600; }
+        .markup-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+        .markup-canvas-container { flex-grow: 1; width: 100%; position: relative; overflow: hidden; touch-action: none; background: #fff; }
+        [data-theme="dark"] .markup-canvas-container { background: #e5e5ea; } /* 다크모드여도 흰 종이 느낌 유지 */
+        #markupCanvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+        .markup-toolbar { padding: 20px; width: 100%; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); background: var(--bg-card); z-index: 10; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        .color-picker { display: flex; gap: 15px; }
+        .color-btn { width: 30px; height: 30px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: transform 0.2s; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); }
+        .color-btn.active { border-color: var(--ios-blue); transform: scale(1.1); box-shadow: inset 0 0 0 2px #fff; }
+        .tool-picker { display: flex; gap: 15px; }
+        .markup-tool-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; cursor: pointer; color: var(--text-primary); display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .markup-tool-btn.active { background: color-mix(in srgb, var(--theme-color) 15%, transparent); color: var(--ios-blue); }
+        [data-theme="dark"] .markup-tool-btn.active { background: rgba(10, 132, 255, 0.2); color: #0a84ff; }
+
+        /* 스크롤바 디자인 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d1d6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8e8e93; }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #48484a; }
+        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #636366; }
+
+        /* 커스텀 모달 */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .modal-overlay.show { opacity: 1; }
+        .modal-content { background: var(--bg-editor); border-radius: 14px; width: 300px; text-align: center; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        .modal-text { padding: 20px; font-size: 16px; font-weight: 500; line-height: 1.4; border-bottom: 1px solid rgba(0,0,0,0.1); color: var(--text-primary); }
+        .modal-actions { display: flex; }
+        .modal-btn { flex: 1; padding: 14px; background: none; border: none; font-size: 16px; cursor: pointer; color: var(--ios-blue); transition: background 0.2s; }
+        .modal-btn.danger { color: #ff3b30; font-weight: 600; border-left: 1px solid rgba(0,0,0,0.1); }
+        .modal-btn:hover { background: rgba(0,0,0,0.05); }
+        [data-theme="dark"] .modal-btn:hover { background: rgba(255,255,255,0.05); }
+        [data-theme="dark"] .modal-btn { border-color: rgba(255,255,255,0.1); }
+        [data-theme="dark"] .modal-text { border-color: rgba(255,255,255,0.1); }
+
+        /* iOS 스타일 컨텍스트 메뉴 */
+        .ios-context-menu {
+            position: absolute;
+            top: 45px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-radius: 14px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            border: 1px solid rgba(0,0,0,0.08);
+            width: 210px;
+            display: flex;
+            visibility: hidden;
+            flex-direction: column;
+            z-index: 300;
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            transform-origin: top right;
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        [data-theme="dark"] .ios-context-menu {
+            background: rgba(44, 44, 46, 0.95);
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .ios-context-menu.show {
+            visibility: visible;
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: auto;
+        }
+        .menu-item {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            user-select: none;
+            opacity: 0.75;
+            transition: opacity 0.2s, background 0.2s;
+        }
+        [data-theme="dark"] .menu-item {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+        .menu-item:hover, .menu-item:active {
+            opacity: 1;
+            background: rgba(0,0,0,0.04);
+        }
+        [data-theme="dark"] .menu-item:hover, [data-theme="dark"] .menu-item:active {
+            background: rgba(255,255,255,0.06);
+            opacity: 1;
+        }
+
+        /* iOS Toggle Switch */
+        .ios-toggle {
+            width: 51px;
+            height: 31px;
+            background: #e9e9ea;
+            border-radius: 31px;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .ios-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 27px;
+            height: 27px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2), 0 0 1px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ios-toggle.on {
+            background: #34c759;
+        }
+        .ios-toggle.on::after {
+            transform: translateX(20px);
+        }
+        [data-theme="dark"] .ios-toggle {
+            background: #39393d;
+        }
+        [data-theme="dark"] .ios-toggle.on {
+            background: #32d74b;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; height: 100%; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 200; background-color: var(--bg-sidebar); box-shadow: 5px 0 20px rgba(0,0,0,0.1); }
+            .sidebar.hide { transform: translateX(-100%); }
+            .main-editor { width: 100%; }
+            #backBtn { display: flex !important; }
+            .editor-content { padding: 0 20px; }
+            .bottom-toolbar-wrapper { justify-content: flex-start; }
+            .new-note-floating { right: 20px; }
+        }
+        #backBtn { display: none; }
+
+        /* 로그인 화면 (내 계정으로 로그인해야 메모가 보임) */
+        .login-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--bg-sidebar); opacity: 1; visibility: visible; transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.4s; }
+        .login-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .login-card { width: 100%; max-width: 360px; background: var(--bg-card); border-radius: 24px; padding: 32px 24px 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; gap: 12px; transition: opacity 0.3s, transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .login-screen.checking .login-card { opacity: 0; pointer-events: none; } /* 로그인 상태를 확인하는 동안엔 카드를 숨김 */
+        .login-screen.hidden .login-card { opacity: 0; transform: scale(0.96) translateY(8px); } /* 자동 로그인 때 카드가 잠깐 비치지 않게 */
+        [data-theme="dark"] .login-card { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.06); }
+        .login-title { font-size: 26px; font-weight: 700; text-align: center; letter-spacing: -0.5px; color: var(--text-primary); }
+        .login-sub { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 8px; }
+        .login-input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border-color); background: var(--bg-sidebar); color: var(--text-primary); font-size: 16px; outline: none; font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s; }
+        .login-input:focus { border-color: var(--theme-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-color) 30%, transparent); }
+        .login-keep { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--text-primary); padding: 4px 2px; cursor: pointer; user-select: none; }
+        .login-keep small { font-size: 12px; color: var(--text-secondary); }
+        .login-btn { width: 100%; padding: 14px; border: none; border-radius: 14px; background: var(--theme-color); color: #000; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; }
+        .login-btn:active { transform: scale(0.97); }
+        .login-btn:disabled { opacity: 0.6; cursor: default; }
+        .login-link { background: none; border: none; color: var(--text-secondary); font-size: 13px; cursor: pointer; text-decoration: underline; align-self: center; font-family: inherit; padding: 4px; }
+        .login-msg { min-height: 18px; font-size: 13px; text-align: center; color: #ff3b30; line-height: 1.4; word-break: keep-all; }
+        .login-msg.ok { color: #34c759; }
+        .menu-item.danger { color: #ff3b30; }
+        /* ================= 데모 전용 ================= */
+        :root { --search-bg: var(--bg-sidebar); }
+        html.embedded ::-webkit-scrollbar { width: 0; height: 0; }
+        html.embedded { scrollbar-width: none; }
+        .demo-badge { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: var(--apple-yellow); border: 1.5px solid var(--apple-yellow); border-radius: 999px; padding: 3px 8px; line-height: 1; background: none; cursor: pointer; font-family: inherit; transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s; }
+        .demo-badge:active { transform: scale(0.92); opacity: 0.7; }
+        .login-demo { background: var(--bg-sidebar); border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--text-secondary); line-height: 1.55; word-break: keep-all; }
+        .login-demo b { color: var(--text-primary); font-weight: 600; }
+        .login-demo-btn { width: 100%; padding: 13px; border-radius: 14px; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s; }
+        .login-demo-btn:active { transform: scale(0.97); }
+        .demo-modal-text { text-align: left; font-weight: 400; font-size: 14.5px; line-height: 1.6; word-break: keep-all; }
+        .demo-modal-text b { font-weight: 700; }
+        .demo-modal-text ul { margin: 8px 0 0 18px; }
+        .demo-modal-text li { margin-bottom: 4px; }
+        .modal-content { border-radius: 20px; }
+        .modal-overlay { transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .modal-content { transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .demo-toast { position: fixed; left: 50%; bottom: calc(30px + env(safe-area-inset-bottom)); transform: translate(-50%, 16px); opacity: 0; background: rgba(28, 28, 30, 0.92); color: #fff; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); padding: 12px 18px; border-radius: 999px; font-size: 14px; line-height: 1.4; z-index: 3000; pointer-events: none; max-width: calc(100% - 32px); text-align: center; word-break: keep-all; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+        .demo-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        /* 4개 앱 공통 궤도 로고: 밝은 화면 #111111, 어두운 화면 대표색 */
+        .orbit-logo { color: #111111; }
+        [data-theme="dark"] .orbit-logo { color: var(--theme-color); }
+        .orbit-logo svg { width: 100%; height: 100%; display: block; }
+        .orbit-logo .orbit-ring { opacity: 0.25; }
+        [data-theme="dark"] .orbit-logo .orbit-ring { opacity: 0.85; }
+        .orbit-text { font-family: 'Montserrat', sans-serif; font-size: 8.5px; font-weight: 500; letter-spacing: 0.8px; fill: currentColor; text-anchor: middle; }
+        .login-logo { width: 124px; height: 124px; margin: -10px auto -6px; }
+        /* 4개 앱 공통 테마 색 고르기 (색 목록·순서 같음) */
+        .menu-theme { padding: 12px 18px 14px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); cursor: default; }
+        [data-theme="dark"] .menu-theme { border-bottom-color: rgba(255, 255, 255, 0.05); }
+        .menu-theme-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+        .theme-chips { display: grid; grid-template-columns: repeat(4, 32px); justify-content: space-between; gap: 10px 0; }
+        .theme-chip { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.2s, box-shadow 0.2s; }
+        .theme-chip:active { transform: scale(0.92); }
+        .theme-chip.selected { border-color: #000; transform: scale(1.1); box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); }
+        [data-theme="dark"] .theme-chip.selected { border-color: #FFF; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); }
+        .menu-item .menu-sub { font-size: 12px; color: var(--text-secondary); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-left: 8px; }
+    </style>
+
+
+    <!-- 외부 라이브러리: 버전을 고정하고, 파일이 바뀌면 실행되지 않게 무결성(integrity) 값을 붙임 -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@1.33.0/dist/umd/lucide.min.js" integrity="sha384-tCQ4YYVYKuOFYH+pnSIPOS3PaT3+5AmX2okMauzDJlLLxkQfJfSwmgpZPceZWs1F" crossorigin="anonymous"></script>
+    <!-- 데모: 서버 대신 브라우저 저장소에서 동작하는 가짜 Supabase -->
+    <script src="demo.js"></script>
+    <script>if (window.self !== window.top) document.documentElement.classList.add('embedded');</script>
+    <!-- 4개 앱 공통 대표색: 저장된 테마 색을 화면이 그려지기 전에 적용 (처음에는 시그니처 그린) -->
+    <script>try { var c = localStorage.getItem('memoteno_theme_color'); if (c) document.documentElement.style.setProperty('--theme-color', c); } catch (e) {}</script>
+    <!-- 4개 앱 공통 글꼴: 본문 Pretendard, 영문 앱 이름(궤도 로고) Montserrat -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%230F0F0F'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='%2322C55E' stroke-width='5'/%3E%3Ccircle cx='20.5' cy='33' r='7' fill='%2322C55E'/%3E%3Ccircle cx='67' cy='79.5' r='7' fill='%2322C55E'/%3E%3Ctext x='50' y='61' font-family='Arial' font-size='30' font-weight='700' text-anchor='middle' fill='%2322C55E'%3EM%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+    <!-- 로그인 화면: 내 계정으로 로그인해야 메모를 불러옴 -->
+    <div class="login-screen checking" id="loginScreen">
+        <form class="login-card" id="loginForm" novalidate>
+            <div class="orbit-logo login-logo" role="img" aria-label="MEMO-TEN-O">
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="orbit-ring" cx="50" cy="50" r="36" fill="none" stroke="currentColor" stroke-width="1.15"/>
+                    <circle cx="18.82" cy="32" r="2.6" fill="currentColor"/>
+                    <circle cx="68" cy="81.18" r="2.6" fill="currentColor"/>
+                    <text class="orbit-text" x="49.6" y="53">MEMO-TEN-O</text>
+                </svg>
+            </div>
+            <div class="login-sub">내 계정으로 로그인하세요</div>
+            <input class="login-input" type="email" id="loginEmail" placeholder="이메일" autocomplete="username" required>
+            <input class="login-input" type="password" id="loginPassword" placeholder="비밀번호" autocomplete="current-password" required>
+            <div class="login-keep" id="keepLoginToggle" role="switch" aria-checked="false" tabindex="0">
+                <span>이 기기에서 로그인 유지<br><small>공용 PC에서는 꺼 두세요. 끄면 탭을 닫을 때 로그아웃돼요.</small></span>
+                <div class="ios-toggle" id="keepLoginSwitch"></div>
+            </div>
+            <button class="login-btn" type="submit" id="loginBtn">로그인</button>
+            <div class="login-msg" id="loginMsg" role="alert"></div>
+            <div class="login-demo">시연용 계정 · 이메일 <b>demo@example.com</b> · 비밀번호 <b>0000</b><br>원본은 메모 주인으로 정한 계정 하나만 로그인할 수 있어요.</div>
+            <button class="login-demo-btn" type="button" id="demoLoginBtn">시연용 계정으로 로그인</button>
+        </form>
+    </div>
+
+    <div class="app-container">
+        <!-- 좌측 사이드바 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title-row">
+                    <button class="btn-icon" style="visibility: hidden;"><i data-lucide="chevron-left"></i></button>
+                    <button class="btn-icon" id="settingsBtn"><i data-lucide="more-horizontal"></i></button>
+                    
+                    <!-- iOS 설정 컨텍스트 메뉴 -->
+                    <div class="ios-context-menu" id="settingsMenu">
+                        <div class="menu-item" id="darkModeToggle">
+                            <span>다크 모드</span>
+                            <div class="ios-toggle" id="darkModeSwitch"></div>
+                        </div>
+                        <div class="menu-theme" id="themeColorMenu">
+                            <div class="menu-theme-title">테마 색</div>
+                            <div class="theme-chips" id="themeColorGrid"></div>
+                        </div>
+                        <div class="menu-item" id="exportBtn">
+                            <span>내보내기 (백업)</span>
+                            <i data-lucide="download" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="menu-item" id="demoGuideBtn">
+                            <span>데모 안내</span>
+                            <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="menu-item" id="demoResetBtn">
+                            <span>데모 초기화</span>
+                            <i data-lucide="rotate-ccw" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="menu-item danger" id="logoutBtn">
+                            <span>로그아웃</span>
+                            <span class="menu-sub" id="accountEmail"></span>
+                        </div>
+                    </div>
+                </div>
+                <h2 style="font-size: 32px; font-weight: 700; margin-bottom: 2px;">메모<button class="demo-badge" id="demoBadge" type="button" title="데모 안내">DEMO</button></h2>
+                <div style="font-size: 13px; color: var(--text-secondary);" id="noteCountDisplay">0개의 메모</div>
+            </div>
+            <div class="note-list-container">
+                <div id="pinnedSection" style="display: none;">
+                    <div class="list-section-title">고정됨</div>
+                    <ul class="note-list" id="pinnedList"></ul>
+                </div>
+                <div>
+                    <div class="list-section-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 5px 8px; position: relative;">
+                        <div style="position: relative;">
+                            <button id="folderSelectBtn" style="display: flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; margin: 0; font-size: inherit; font-weight: inherit; color: inherit; cursor: pointer;">
+                                <span class="list-section-title" style="padding: 0; display: inline-block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="unpinnedTitle">모든 메모</span>
+                                <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--ios-blue);"></i>
+                            </button>
+                            <div class="ios-context-menu" id="folderMenu" style="top: 30px; left: 0; width: 200px; z-index: 100;">
+                                <div class="menu-item folder-item" data-id="all">
+                                    <i data-lucide="folder" style="width: 16px; height: 16px;"></i><span>모든 메모</span><i data-lucide="check" class="folder-check" style="width: 16px; margin-left: auto; opacity: 1;"></i>
+                                </div>
+                                <div class="menu-divider"></div>
+                                <div id="dynamicFolderList"></div>
+                                <div class="menu-item" id="createFolderBtn" style="color: var(--ios-blue);">
+                                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i><span>새 폴더 만들기</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="sortBtn" class="sidebar-new-note-btn" style="width: 30px; height: 30px; color: var(--text-secondary);" title="정렬">
+                            <i data-lucide="arrow-up-down" style="width: 15px; height: 15px;"></i>
+                        </button>
+                        
+                        <div class="ios-context-menu" id="sortMenu" style="top: 40px; right: 0; width: 150px; z-index: 100;">
+                            <div class="menu-item sort-item" data-sort="dateDesc">
+                                <span>최신순</span><i data-lucide="check" class="sort-check" style="width: 16px; opacity: 1;"></i>
+                            </div>
+                            <div class="menu-item sort-item" data-sort="dateAsc">
+                                <span>오래된순</span><i data-lucide="check" class="sort-check" style="width: 16px; opacity: 0;"></i>
+                            </div>
+                            <div class="menu-item sort-item" data-sort="titleAsc">
+                                <span>가나다순</span><i data-lucide="check" class="sort-check" style="width: 16px; opacity: 0;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <ul class="note-list" id="unpinnedList"></ul>
+                </div>
+            </div>
+            
+            <!-- 사이드바 하단 플로팅 검색 & 새 메모 -->
+            <div class="sidebar-bottom-toolbar">
+                <div class="sidebar-search-pill">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="searchInput" placeholder="검색">
+                </div>
+                <button id="newNoteBtn" class="sidebar-new-note-btn" title="새 메모"><i data-lucide="square-pen"></i></button>
+            </div>
+        </div>
+
+        <!-- 우측 메인 에디터 -->
+        <div class="main-editor">
+            <div id="aiLoading" class="ai-loading-overlay">
+                <div class="ai-loading-card">
+                    <div class="ai-orb-container">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <div class="ai-loading-title">분석 중...</div>
+                </div>
+            </div>
+            <div id="emptyState" class="empty-state">메모를 선택하거나 새로 작성하세요.</div>
+            
+            <!-- 상단 헤더 -->
+            <div class="editor-header" id="editorHeader">
+                <div class="header-left">
+                    <button id="backBtn" class="btn-icon" style="color: var(--apple-yellow);">
+                        <i data-lucide="chevron-left"></i>
+                        <span style="font-size: 17px; margin-left: 2px;">목록</span>
+                    </button>
+                </div>
+                <div class="header-right">
+                    <button id="moveFolderBtn" class="btn-icon" title="폴더 이동"><i data-lucide="folder-input"></i></button>
+                    <button id="pinBtn" class="btn-icon pin-btn" title="고정"><i data-lucide="pin"></i></button>
+                    <button id="copyAllBtn" class="btn-icon" title="전체 복사"><i data-lucide="copy"></i></button>
+                    <button id="deleteBtn" class="btn-icon" style="color: #ff3b30;" title="삭제"><i data-lucide="trash-2"></i></button>
+                </div>
+            </div>
+            
+            <!-- 본문 영역 -->
+            <div class="editor-content" id="editorContent">
+                <div class="date-display" id="dateDisplay"></div>
+                <div id="noteTitle" class="title-input" contenteditable="true" data-placeholder="제목"></div>
+                <div id="noteBody" class="body-editor" contenteditable="true" data-placeholder="내용을 입력하세요..."></div>
+                <div class="editor-bottom-spacer"></div>
+                
+            </div>
+
+            <!-- 하단 플로팅 툴바 (아이클라우드 스타일) -->
+            <div class="bottom-toolbar-wrapper" id="bottomToolbar">
+                <div class="bottom-tools-capsule">
+                    <button class="tool-btn" onclick="document.execCommand('insertUnorderedList', false, null)" title="체크리스트">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="7" cy="7.5" r="3"></circle>
+                            <path d="M5.5 7.5l1 1 2-2"></path>
+                            <circle cx="7" cy="16.5" r="3"></circle>
+                            <line x1="13" y1="7.5" x2="21" y2="7.5"></line>
+                            <line x1="13" y1="16.5" x2="21" y2="16.5"></line>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" onclick="document.getElementById('imageUpload').click()" title="첨부파일 (사진 등)"><i data-lucide="paperclip"></i></button>
+                    <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                    <button class="tool-btn" id="markupBtn" title="마크업">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M8.5 18l1.5-9a2 2 0 0 1 4 0l1.5 9"></path>
+                            <path d="M9.5 13h5"></path>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="aiBtn" title="Gemini AI">
+                        <i data-lucide="sparkles"></i>
+                        <!-- AI 컨텍스트 메뉴 -->
+                        <div class="ios-context-menu" id="aiMenu" style="top: auto; bottom: 50px; right: 0; transform-origin: bottom right;">
+                            <div class="menu-item" data-ai-action="summarize"><span>요약 및 정리</span><i data-lucide="list"></i></div>
+                            <div class="menu-item" data-ai-action="tone"><span>문체 변환</span>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="4 20 9 5 14 20"></polyline>
+                                    <line x1="6" y1="15" x2="12" y2="15"></line>
+                                    <circle cx="19" cy="16" r="3"></circle>
+                                    <line x1="22" y1="13" x2="22" y2="20"></line>
+                                </svg>
+                            </div>
+                            <div class="menu-item" data-ai-action="expand"><span>아이디어 확장</span><i data-lucide="lightbulb"></i></div>
+                            <div class="menu-item" data-ai-action="grammar"><span>맞춤법 및 교정</span><i data-lucide="check-circle"></i></div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <!-- 우측 하단 새 메모 버튼 -->
+            <button id="newNoteBtnMobile" class="new-note-floating" title="새 메모 작성하기"><i data-lucide="square-pen"></i></button>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 모달 -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-text" id="modalText">이 메모를 삭제할까요?<br>삭제하면 되돌릴 수 없어요.</div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="cancelDeleteBtn">취소</button>
+                <button class="modal-btn danger" id="confirmDeleteBtn">삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 폴더 생성 모달 -->
+    <div class="modal-overlay" id="folderModal">
+        <div class="modal-content" style="padding: 20px;">
+            <div class="modal-text" style="margin-bottom: 15px; font-weight: 600;">새 폴더</div>
+            <input type="text" id="folderNameInput" placeholder="이름" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--search-bg); color: var(--text-primary); margin-bottom: 20px; font-size: 16px; outline: none;">
+            <div class="modal-actions">
+                <button class="modal-btn" id="cancelFolderBtn">취소</button>
+                <button class="modal-btn" id="confirmFolderBtn" style="color: var(--ios-blue); font-weight: 600;">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 폴더 이동 모달 -->
+    <div class="modal-overlay" id="moveFolderModal">
+        <div class="modal-content" style="padding: 20px;">
+            <div class="modal-text" style="margin-bottom: 15px; font-weight: 600;">메모를 이동할 폴더 선택</div>
+            <div id="moveFolderList" style="max-height: 250px; overflow-y: auto; text-align: left; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--search-bg);">
+                <!-- 렌더링될 폴더 리스트 -->
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="cancelMoveFolderBtn" style="border-right: none; width: 100%;">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI 참고용 결과 모달 (iOS 스타일) -->
+    <div class="modal-overlay" id="aiResultModal">
+        <div class="ai-result-sheet">
+            <div class="ai-result-header">
+                <div class="ai-result-title-group" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="sparkles" style="color: var(--apple-yellow); width: 20px; height: 20px;"></i>
+                    <div class="ai-result-subtitle" id="aiResultSubtitle" style="margin: 0;">핵심 요약</div>
+                </div>
+                <button class="ai-result-close-btn" id="closeAiResultBtn" title="닫기">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="ai-result-content" id="aiResultText">
+                <!-- AI 참고 결과 텍스트가 표시됩니다 -->
+            </div>
+            <div class="ai-result-footer">
+                <button class="ios-action-btn primary" id="copyAiResultBtn">
+                    <i data-lucide="copy"></i> 결과 복사하기
+                </button>
+                <button class="ios-action-btn secondary" id="dismissAiResultBtn">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 마크업 (그리기) 모달 -->
+    <div class="modal-overlay markup-overlay" id="markupModal">
+        <div class="markup-header">
+            <button id="cancelMarkupBtn" class="markup-btn">취소</button>
+            <div class="markup-title">마크업</div>
+            <button id="doneMarkupBtn" class="markup-btn done">완료</button>
+        </div>
+        <div class="markup-canvas-container">
+            <canvas id="markupCanvas"></canvas>
+        </div>
+        <div class="markup-toolbar">
+            <div class="color-picker">
+                <button class="color-btn active" data-color="#000000" style="background: #000000;"></button>
+                <button class="color-btn" data-color="#ff3b30" style="background: #ff3b30;"></button>
+                <button class="color-btn" data-color="#34c759" style="background: #34c759;"></button>
+                <button class="color-btn" data-color="#007aff" style="background: #007aff;"></button>
+            </div>
+            <div class="tool-picker">
+                <button class="markup-tool-btn active" data-tool="pen" title="펜"><i data-lucide="pen"></i></button>
+                <button class="markup-tool-btn" data-tool="eraser" title="지우개"><i data-lucide="eraser"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 데모 안내 -->
+    <div class="modal-overlay" id="demoGuideModal">
+        <div class="modal-content" style="width: 330px;">
+            <div class="modal-text demo-modal-text">
+                <b>MEMO-TEN-O 포트폴리오 데모</b><br>
+                매일 초기화되는 공용 PC에서도 기록을 잃지 않으려고 만든 웹 메모장이에요.
+                <ul>
+                    <li>메모는 모두 <b>지어낸 샘플</b>이고, 이 브라우저에만 저장돼요.</li>
+                    <li>AI 보조는 실제 AI를 부르지 않고 <b>미리 써 둔 예시</b>만 보여 줘요.</li>
+                    <li>사진 첨부는 인터넷에 올리지 않고 메모 안에만 넣어요.</li>
+                    <li>원본은 로그인한 메모 주인만 열 수 있고, 휴대폰·PC가 실시간으로 맞춰져요.</li>
+                </ul>
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="closeDemoGuideBtn" style="font-weight: 600;">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 데모 초기화 -->
+    <div class="modal-overlay" id="demoResetModal">
+        <div class="modal-content">
+            <div class="modal-text">데모를 처음 상태로 되돌릴까요?<br><span style="font-size: 13px; font-weight: 400; color: var(--text-secondary);">직접 쓴 메모와 폴더가 지워지고 샘플 메모로 돌아가요.</span></div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="cancelDemoResetBtn">취소</button>
+                <button class="modal-btn danger" id="confirmDemoResetBtn">초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-toast" id="demoToast" role="status" aria-live="polite"></div>
+
+    <script>
+        // 데모 전용: 알림창(alert) 대신 아래쪽 토스트, 데모 안내·초기화, 시연용 로그인
+        (function () {
+            const toast = document.getElementById('demoToast');
+            let toastTimer;
+            window.alert = function (message) {
+                toast.textContent = String(message);
+                toast.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+            };
+            const openModal = id => { const m = document.getElementById(id); m.style.display = 'flex'; setTimeout(() => m.classList.add('show'), 10); };
+            const closeModal = id => { const m = document.getElementById(id); m.classList.remove('show'); setTimeout(() => { m.style.display = 'none'; }, 300); };
+            const fromMenu = (e, fn) => { e.stopPropagation(); document.getElementById('settingsMenu').classList.remove('show'); fn(); };
+
+            window.openDemoGuideModal = () => openModal('demoGuideModal');
+            window.openDemoResetModal = () => openModal('demoResetModal');
+            document.getElementById('demoBadge').addEventListener('click', e => { e.stopPropagation(); openModal('demoGuideModal'); });
+            document.getElementById('demoGuideBtn').addEventListener('click', e => fromMenu(e, () => openModal('demoGuideModal')));
+            document.getElementById('demoResetBtn').addEventListener('click', e => fromMenu(e, () => openModal('demoResetModal')));
+            document.getElementById('closeDemoGuideBtn').addEventListener('click', () => closeModal('demoGuideModal'));
+            document.getElementById('cancelDemoResetBtn').addEventListener('click', () => closeModal('demoResetModal'));
+            document.getElementById('confirmDemoResetBtn').addEventListener('click', () => window.DemoDB.reset());
+
+            // 4개 앱 공통 테마 색 (DAY-TEN-O와 같은 목록·순서, 기본은 시그니처 그린)
+            const THEME_COLORS = [
+                { name: '시그니처 그린', color: '#22C55E' },
+                { name: '샴페인 골드', color: '#E5C158' },
+                { name: '소프트 핑크', color: '#FFB6C1' },
+                { name: '스카이 블루', color: '#81D4FA' },
+                { name: '민트 그린', color: '#80CBC4' },
+                { name: '라벤더 퍼플', color: '#CE93D8' },
+                { name: '소프트 피치', color: '#FFCCBC' },
+                { name: '뮤티드 세이지', color: '#A5D6A7' },
+            ];
+            const THEME_COLOR_KEY = 'memoteno_theme_color';
+            const currentThemeColor = () => { try { return localStorage.getItem(THEME_COLOR_KEY) || '#22C55E'; } catch (e) { return '#22C55E'; } };
+            function renderThemeColorChips() {
+                const grid = document.getElementById('themeColorGrid');
+                grid.innerHTML = '';
+                THEME_COLORS.forEach(({ name, color }) => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
+                    chip.className = 'theme-chip' + (color === currentThemeColor() ? ' selected' : '');
+                    chip.style.background = color;
+                    chip.title = name;
+                    chip.setAttribute('aria-label', name);
+                    chip.addEventListener('click', e => {
+                        e.stopPropagation(); // 고르는 동안 메뉴가 닫히지 않게
+                        try { localStorage.setItem(THEME_COLOR_KEY, color); } catch (err) { /* 이번 화면에만 적용 */ }
+                        document.documentElement.style.setProperty('--theme-color', color);
+                        renderThemeColorChips();
+                    });
+                    grid.appendChild(chip);
+                });
+            }
+            document.documentElement.style.setProperty('--theme-color', currentThemeColor());
+            renderThemeColorChips();
+
+            // PC 화면에서는 처음 열 때 '둘러보기' 메모를 바로 띄움 (목록과 편집 화면이 나란히 보이게)
+            if (window.innerWidth > 768) {
+                const openGuide = () => {
+                    const front = Array.from(document.querySelectorAll('.note-item-front')).find(el => el.textContent.includes('MEMO-TEN-O 둘러보기'));
+                    if (front) front.click();
+                    return !!front;
+                };
+                const watcher = new MutationObserver(() => { if (openGuide()) watcher.disconnect(); });
+                watcher.observe(document.getElementById('pinnedList'), { childList: true });
+                setTimeout(() => watcher.disconnect(), 5000);
+            }
+            document.getElementById('demoLoginBtn').addEventListener('click', () => {
+                document.getElementById('loginEmail').value = window.DemoDB.DEMO_EMAIL;
+                document.getElementById('loginPassword').value = window.DemoDB.DEMO_PASSWORD;
+                document.getElementById('loginForm').requestSubmit();
+            });
+        })();
+    </script>
+
+    <script type="module">
+        // 모바일(iOS)에서 :active 가상 클래스가 즉각적으로 작동하도록 빈 터치 이벤트 리스너 추가
+        document.body.addEventListener('touchstart', function() {}, {passive: true});
+
+        // Lucide 아이콘 초기화 렌더링 함수
+        function updateIcons() { window.lucide.createIcons(); }
+        // 초기 로드 시 1회 실행
+        updateIcons();
+
+        // --- 데모: 실제 서버에 연결하지 않음 (demo.js 의 가짜 Supabase가 이 브라우저의 저장소만 씀) ---
+        // 같은 주소(github.io)의 다른 데모와 섞이지 않게 저장소 이름은 모두 memoteno_ 로 시작
+        const SUPABASE_URL = 'demo';
+        const SUPABASE_ANON_KEY = 'demo';
+        const KEEP_LOGIN_KEY = 'memoteno_keep_login';
+
+        // 로그인 정보 보관 장소: 기본은 탭 저장소(탭을 닫으면 로그아웃), "로그인 유지"를 켰을 때만 브라우저 저장소
+        const keepLogin = {
+            get() { try { return localStorage.getItem(KEEP_LOGIN_KEY) === '1'; } catch { return false; } },
+            set(on) { try { if (on) localStorage.setItem(KEEP_LOGIN_KEY, '1'); else localStorage.removeItem(KEEP_LOGIN_KEY); } catch { /* 저장소를 못 쓰면 탭 저장소만 씀 */ } }
+        };
+        const authStorage = {
+            getItem(key) {
+                try { return sessionStorage.getItem(key) ?? localStorage.getItem(key); } catch { return null; }
+            },
+            setItem(key, value) {
+                try {
+                    if (keepLogin.get()) { localStorage.setItem(key, value); sessionStorage.removeItem(key); }
+                    else { sessionStorage.setItem(key, value); localStorage.removeItem(key); }
+                } catch { /* 저장 못 하면 이번 화면에서만 로그인 */ }
+            },
+            removeItem(key) {
+                try { sessionStorage.removeItem(key); localStorage.removeItem(key); } catch { /* 무시 */ }
+            }
+        };
+
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { storage: authStorage, storageKey: 'memoteno_auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+        });
+
+        // --- 메모 저장소: 원래 코드의 Firestore 함수 모양(collection/doc/addDoc/updateDoc/deleteDoc/onSnapshot)을
+        //     그대로 두고, 안에서는 Supabase 표(mto_memos, mto_folders)를 읽고 씀 ---
+        const TABLES = { memos: 'mto_memos', folders: 'mto_folders' };
+        const FIELD_TO_COLUMN = { isPinned: 'is_pinned', folderId: 'folder_id', createdAt: 'created_at', updatedAt: 'updated_at' };
+        const COLUMN_TO_FIELD = Object.fromEntries(Object.entries(FIELD_TO_COLUMN).map(([field, column]) => [column, field]));
+        const toRow = data => Object.fromEntries(Object.entries(data).map(([k, v]) => [FIELD_TO_COLUMN[k] || k, v]));
+        const fromRow = row => Object.fromEntries(Object.entries(row).map(([k, v]) => [COLUMN_TO_FIELD[k] || k, v]));
+
+        const db = { name: 'supabase' };
+        const localCache = { memos: new Map(), folders: new Map() };   // 화면에 보이는 최신 상태
+        const snapshotListeners = { memos: new Set(), folders: new Set() };
+
+        function collection(_db, name) { return { kind: 'collection', name }; }
+        function doc(parent, nameOrId, maybeId) {
+            return parent && parent.kind === 'collection'
+                ? { kind: 'doc', name: parent.name, id: nameOrId }
+                : { kind: 'doc', name: nameOrId, id: maybeId };
+        }
+        function orderBy(field, direction = 'asc') { return { field, direction }; }
+        function query(collectionRef, order) { return { ...collectionRef, order }; }
+
+        // 서버가 거절한 이유를 원래 앱이 쓰던 모양({ code: 'permission-denied' })으로 바꿈
+        function toAppError(error) {
+            const permission = error && (error.code === '42501' || /row-level security|permission denied/i.test(error.message || ''));
+            return Object.assign(new Error(error?.message || '저장소 오류'), { code: permission ? 'permission-denied' : (error?.code || 'unknown') });
+        }
+
+        function notifyListeners(name) { snapshotListeners[name].forEach(listener => listener.emit()); }
+
+        // 쓰기가 성공하면 화면용 상태를 바로 고쳐서(Firestore처럼) 새 메모를 곧바로 열 수 있게 함
+        async function addDoc(collectionRef, data) {
+            const { data: row, error } = await sb.from(TABLES[collectionRef.name]).insert(toRow(data)).select().single();
+            if (error) throw toAppError(error);
+            localCache[collectionRef.name].set(row.id, fromRow(row));
+            notifyListeners(collectionRef.name);
+            return { id: row.id };
+        }
+
+        async function updateDoc(docRef, data) {
+            const { data: rows, error } = await sb.from(TABLES[docRef.name]).update(toRow(data)).eq('id', docRef.id).select();
+            if (error) throw toAppError(error);
+            if (!rows || rows.length === 0) throw Object.assign(new Error('저장할 메모를 찾지 못했어요.'), { code: 'not-found' });
+            localCache[docRef.name].set(docRef.id, fromRow(rows[0]));
+            notifyListeners(docRef.name);
+        }
+
+        async function deleteDoc(docRef) {
+            const { error } = await sb.from(TABLES[docRef.name]).delete().eq('id', docRef.id);
+            if (error) throw toAppError(error);
+            localCache[docRef.name].delete(docRef.id);
+            notifyListeners(docRef.name);
+        }
+
+        function sortValue(value) {
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string') return value;
+            return value ?? 0;
+        }
+
+        // 표 전체를 한 번 읽고, 다른 기기에서 바뀌면(실시간 알림) 다시 읽음
+        function onSnapshot(q, onNext, onError) {
+            const name = q.name;
+            const listener = {
+                emit() {
+                    const docs = Array.from(localCache[name].values());
+                    if (q.order) {
+                        const { field, direction } = q.order;
+                        const sign = direction === 'desc' ? -1 : 1;
+                        docs.sort((a, b) => {
+                            const x = sortValue(a[field]), y = sortValue(b[field]);
+                            return x < y ? -sign : x > y ? sign : 0;
+                        });
+                    }
+                    onNext({ forEach: fn => docs.forEach(item => fn({ id: item.id, data: () => { const { id, ...rest } = item; return rest; } })) });
+                }
+            };
+            snapshotListeners[name].add(listener);
+
+            let stopped = false;
+            let refreshTimer = null;
+            const refresh = async () => {
+                const { data, error } = await sb.from(TABLES[name]).select('*');
+                if (stopped) return;
+                if (error) { if (onError) onError(toAppError(error)); return; }
+                localCache[name] = new Map(data.map(row => [row.id, fromRow(row)]));
+                notifyListeners(name);
+            };
+            const refreshSoon = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 300); };
+            const onVisible = () => { if (document.visibilityState === 'visible') refreshSoon(); };
+
+            const channel = sb.channel(`mto-${name}-${Math.random().toString(36).slice(2)}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: TABLES[name] }, refreshSoon)
+                .subscribe();
+            document.addEventListener('visibilitychange', onVisible);
+            refresh();
+
+            return () => {
+                stopped = true;
+                clearTimeout(refreshTimer);
+                snapshotListeners[name].delete(listener);
+                document.removeEventListener('visibilitychange', onVisible);
+                sb.removeChannel(channel);
+            };
+        }
+
+        const notesCollection = collection(db, "memos");
+        const foldersCollection = collection(db, "folders");
+
+        // --- 보안: 화면에 글자를 넣을 때 HTML로 해석되지 않게 바꿈 (XSS 방지) ---
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        }
+
+        // onclick="...(id)" 안에 넣을 메모 id (따옴표·특수문자가 있어도 코드로 실행되지 않음)
+        function jsArg(value) {
+            return escapeHtml(JSON.stringify(String(value)));
+        }
+
+        // 사진 주소는 https 주소와 사진 data 주소만 허용
+        function isSafeImageSrc(src) {
+            return typeof src === 'string' && (/^https:\/\//i.test(src) || /^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(src));
+        }
+
+        // 본문 HTML에서 메모장이 쓰는 안전한 태그만 남김 (스크립트·이벤트 속성·외부 삽입물 제거)
+        const SAFE_TAGS = new Set(['DIV', 'P', 'BR', 'SPAN', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'STRIKE', 'UL', 'OL', 'LI', 'IMG', 'H1', 'H2', 'H3', 'H4', 'BLOCKQUOTE', 'PRE', 'CODE', 'HR']);
+        const DROP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'FRAME', 'FRAMESET', 'OBJECT', 'EMBED', 'APPLET', 'LINK', 'META', 'BASE', 'TEMPLATE', 'SVG', 'MATH', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'OPTION', 'NOSCRIPT', 'NOEMBED', 'NOFRAMES', 'XMP', 'PLAINTEXT', 'TITLE', 'HEAD']);
+
+        function sanitizeHtml(html) {
+            // DOMParser로 만든 문서는 스크립트가 실행되지 않고 사진도 불러오지 않음
+            const parsed = new DOMParser().parseFromString(`<body>${html || ''}</body>`, 'text/html');
+            cleanChildren(parsed.body);
+            return parsed.body.innerHTML;
+        }
+
+        function cleanChildren(parent) {
+            Array.from(parent.childNodes).forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) return;
+                if (node.nodeType !== Node.ELEMENT_NODE) { node.remove(); return; }
+                const tag = node.tagName.toUpperCase();
+                if (DROP_TAGS.has(tag)) { node.remove(); return; }
+                cleanChildren(node);
+                if (!SAFE_TAGS.has(tag)) { node.replaceWith(...Array.from(node.childNodes)); return; }
+                Array.from(node.attributes).forEach(attr => {
+                    const name = attr.name.toLowerCase();
+                    if (tag === 'IMG' && name === 'src' && isSafeImageSrc(attr.value)) return;
+                    if (tag === 'IMG' && name === 'alt') return;
+                    if (tag === 'LI' && name === 'class' && node.classList.contains('checked')) { node.setAttribute('class', 'checked'); return; }
+                    node.removeAttribute(attr.name);
+                });
+                if (tag === 'IMG' && !node.hasAttribute('src')) node.remove();
+            });
+        }
+
+        // 서버 함수(AI·사진 업로드) 부르기. 로그인 증표는 Supabase가 자동으로 같이 보냄
+        async function callFunction(name, body) {
+            const { data, error } = await sb.functions.invoke(name, { body });
+            if (error) {
+                let message = error.message || '서버 요청 실패';
+                try { const detail = await error.context.json(); if (detail && detail.error) message = detail.error; } catch { /* 본문 없음 */ }
+                throw new Error(message);
+            }
+            return data;
+        }
+
+        // DOM 요소
+        const pinnedList = document.getElementById('pinnedList');
+        const unpinnedList = document.getElementById('unpinnedList');
+        const pinnedSection = document.getElementById('pinnedSection');
+        const noteTitle = document.getElementById('noteTitle');
+        const noteBody = document.getElementById('noteBody');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const emptyState = document.getElementById('emptyState');
+        const pinBtn = document.getElementById('pinBtn');
+        const searchInput = document.getElementById('searchInput');
+        const sidebar = document.getElementById('sidebar');
+        const bottomToolbar = document.getElementById('bottomToolbar');
+        const newNoteBtnMobile = document.getElementById('newNoteBtnMobile');
+
+        let currentNoteId = null;
+        let actionNoteId = null;   // 폴더 이동·삭제 창이 다룰 메모 (밀어서 고른 메모일 수 있음)
+        let loadedBodyHtml = '';   // 편집 화면에 처음 띄운 본문 (안 고쳤으면 다시 저장하지 않음)
+        let notesData = [];
+        let foldersData = [];
+        let currentFolderId = 'all';
+        let currentFolderName = '모든 메모';
+        
+        const handleToolbarTap = (e) => {
+            if (e.target.closest('.tool-btn') || e.target.closest('input')) return;
+            
+            // e.preventDefault();를 주면 스크롤 등 다른 터치 동작을 막을 수 있으므로 생략
+            noteBody.focus();
+            if (typeof window.getSelection !== 'undefined' && typeof document.createRange !== 'undefined') {
+                const range = document.createRange();
+                range.selectNodeContents(noteBody);
+                range.collapse(false);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                
+                const editorContent = document.getElementById('editorContent');
+                if (editorContent) {
+                    editorContent.scrollTop = editorContent.scrollHeight;
+                }
+            }
+        };
+        bottomToolbar.addEventListener('click', handleToolbarTap);
+        bottomToolbar.addEventListener('touchend', (e) => {
+            if (e.target.closest('.tool-btn') || e.target.closest('input')) return;
+            e.preventDefault(); // iOS에서 click 이벤트 중복 발생 방지 및 즉각 반응
+            handleToolbarTap(e);
+        });
+        
+        let autoSaveTimeout = null;
+
+
+        
+        // --- 뷰포트 키보드 대응 (모바일) ---
+        if (window.visualViewport) {
+            const adjustToolbar = () => {
+                const bottomToolbar = document.querySelector('.bottom-toolbar-wrapper');
+                const newNoteBtnFloat = document.querySelector('.new-note-floating');
+                if (!bottomToolbar || !newNoteBtnFloat) return;
+                
+                const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                const baseBottom = 25;
+                const newBottom = keyboardHeight > 0 ? keyboardHeight + 10 : baseBottom;
+                
+                bottomToolbar.style.bottom = newBottom + 'px';
+                newNoteBtnFloat.style.bottom = newBottom + 'px';
+            };
+            window.visualViewport.addEventListener('resize', adjustToolbar);
+            window.visualViewport.addEventListener('scroll', adjustToolbar);
+            // 초기 1회 실행
+            adjustToolbar();
+        }
+
+        // --- 설정 메뉴 및 다크 모드 (iOS 스타일) ---
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsMenu = document.getElementById('settingsMenu');
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeSwitch = document.getElementById('darkModeSwitch');
+
+       
+        // 시스템 및 저장된 다크 모드 설정 불러오기
+        const savedTheme = localStorage.getItem('memoteno_theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const themeColorMeta = document.getElementById('theme-color-meta');
+        
+        function updateThemeColorMeta(isDark) {
+            if (themeColorMeta) {
+                themeColorMeta.setAttribute('content', isDark ? '#0F0F0F' : '#F2F2F7');
+            }
+        }
+
+        // 우선순위: 사용자가 명시적으로 저장한 테마 > 시스템 설정
+        const isDarkMode = savedTheme === 'dark' || (savedTheme === null && prefersDark);
+
+        if (isDarkMode) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            darkModeSwitch.classList.add('on');
+            updateThemeColorMeta(true);
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            darkModeSwitch.classList.remove('on');
+            updateThemeColorMeta(false);
+        }
+
+        // 시스템 테마 변경 감지
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (localStorage.getItem('memoteno_theme') === null) {
+                if (e.matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    darkModeSwitch.classList.add('on');
+                    updateThemeColorMeta(true);
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    darkModeSwitch.classList.remove('on');
+                    updateThemeColorMeta(false);
+                }
+            }
+        });
+
+
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsMenu.classList.toggle('show');
+            document.getElementById('sortMenu')?.classList.remove('show');
+            document.getElementById('folderMenu')?.classList.remove('show');
+        });
+
+        const sortBtn = document.getElementById('sortBtn');
+        const sortMenu = document.getElementById('sortMenu');
+        let currentSort = 'dateDesc'; // dateDesc, dateAsc, titleAsc
+
+        sortBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sortMenu.classList.toggle('show');
+            settingsMenu.classList.remove('show');
+            document.getElementById('folderMenu')?.classList.remove('show');
+        });
+
+        const folderSelectBtn = document.getElementById('folderSelectBtn');
+        const folderMenu = document.getElementById('folderMenu');
+        
+        folderSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            folderMenu.classList.toggle('show');
+            settingsMenu.classList.remove('show');
+            sortMenu.classList.remove('show');
+        });
+
+        document.querySelectorAll('.sort-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newSort = e.currentTarget.dataset.sort;
+                currentSort = newSort;
+                
+                // Update checks
+                document.querySelectorAll('.sort-item .sort-check').forEach(icon => {
+                    icon.style.opacity = '0';
+                });
+                e.currentTarget.querySelector('.sort-check').style.opacity = '1';
+                
+                sortMenu.classList.remove('show');
+                renderList(); // Re-render with new sort
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) {
+                settingsMenu.classList.remove('show');
+            }
+            if (sortMenu && !sortMenu.contains(e.target) && e.target !== sortBtn) {
+                sortMenu.classList.remove('show');
+            }
+            if (folderMenu && !folderMenu.contains(e.target) && !folderSelectBtn.contains(e.target)) {
+                folderMenu.classList.remove('show');
+            }
+        });
+
+        darkModeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                darkModeSwitch.classList.remove('on');
+                localStorage.setItem('memoteno_theme', 'light');
+                updateThemeColorMeta(false);
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeSwitch.classList.add('on');
+                localStorage.setItem('memoteno_theme', 'dark');
+                updateThemeColorMeta(true);
+            }
+        });
+        
+        // --- AI 컨텍스트 메뉴 및 참고 결과 모달 (iOS 스타일) ---
+        const aiBtn = document.getElementById('aiBtn');
+        const aiMenu = document.getElementById('aiMenu');
+        const aiLoading = document.getElementById('aiLoading');
+        const aiResultModal = document.getElementById('aiResultModal');
+        const aiResultSubtitle = document.getElementById('aiResultSubtitle');
+        const aiResultText = document.getElementById('aiResultText');
+        const closeAiResultBtn = document.getElementById('closeAiResultBtn');
+        const dismissAiResultBtn = document.getElementById('dismissAiResultBtn');
+        const copyAiResultBtn = document.getElementById('copyAiResultBtn');
+
+        function cleanMarkdownClient(text) {
+            if (!text) return "";
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/__(.*?)__/g, '$1')
+                .replace(/_(.*?)_/g, '$1')
+                .replace(/^>\s?/gm, '')
+                .replace(/^#{1,6}\s?/gm, '')
+                .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+                .replace(/---/g, '')
+                .trim();
+        }
+
+        const actionTitles = {
+            summarize: '핵심 요약 및 정리',
+            tone: '문체 변환 제안',
+            expand: '아이디어 확장',
+            grammar: '맞춤법 및 교정 제안'
+        };
+
+        function closeAiResultModal() {
+            aiResultModal.classList.remove('show');
+            setTimeout(() => {
+                aiResultModal.style.display = 'none';
+            }, 200);
+        }
+
+        if (closeAiResultBtn) closeAiResultBtn.addEventListener('click', closeAiResultModal);
+        if (dismissAiResultBtn) dismissAiResultBtn.addEventListener('click', closeAiResultModal);
+
+        if (copyAiResultBtn) {
+            copyAiResultBtn.addEventListener('click', () => {
+                const textToCopy = aiResultText.innerText;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalText = copyAiResultBtn.innerHTML;
+                    copyAiResultBtn.innerHTML = '<i data-lucide="check"></i> 복사 완료!';
+                    updateIcons();
+                    setTimeout(() => {
+                        copyAiResultBtn.innerHTML = originalText;
+                        updateIcons();
+                    }, 2000);
+                }).catch(() => {
+                    alert('복사에 실패했습니다.');
+                });
+            });
+        }
+        
+        aiBtn.addEventListener('click', (e) => {
+            if (e.target.closest('.menu-item')) return; // 하위 아이템 클릭 시 무시
+            e.stopPropagation();
+            aiMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!aiMenu.contains(e.target) && e.target !== aiBtn) {
+                aiMenu.classList.remove('show');
+            }
+        });
+
+        document.querySelectorAll('#aiMenu .menu-item').forEach(item => {
+            item.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                aiMenu.classList.remove('show');
+                
+                if (!currentNoteId) return;
+                
+                const actionType = item.dataset.aiAction;
+                const textToProcess = noteBody.innerText; // innerText로 플레인 텍스트 가져오기
+                
+                if (!textToProcess.trim()) {
+                    alert('처리할 텍스트가 없습니다.');
+                    return;
+                }
+                
+                aiLoading.classList.add('show');
+                
+                try {
+                    let timeoutId;
+                    const timeout = new Promise((_, reject) => {
+                        timeoutId = setTimeout(() => reject(Object.assign(new Error('timeout'), { name: 'AbortError' })), 30000); // 30초 타임아웃
+                    });
+                    const data = await Promise.race([callFunction('memo-ai', { text: textToProcess, type: actionType }), timeout]);
+                    clearTimeout(timeoutId);
+                    
+                    // 마크다운 기호 제거
+                    const cleanedText = cleanMarkdownClient(data.result);
+                    
+                    // AI 결과는 메모를 직접 작성/수정하지 않고, 참고용 iOS 모달에 표시
+                    aiResultSubtitle.innerText = actionTitles[actionType] || 'AI 결과 참고';
+                    aiResultText.innerText = cleanedText;
+                    
+                    aiResultModal.style.display = 'flex';
+                    setTimeout(() => {
+                        aiResultModal.classList.add('show');
+                    }, 10);
+                    
+                    updateIcons();
+                    
+                } catch (error) {
+                    console.error('AI 에러:', error);
+                    if (error.name === 'AbortError') {
+                        alert('요청 시간이 초과되었습니다 (서버 지연). 다시 시도해 주세요.');
+                    } else {
+                        alert(`AI 처리 중 오류가 발생했습니다: ${error.message}`);
+                    }
+                } finally {
+                    aiLoading.classList.remove('show');
+                }
+            });
+        });
+        // ------------------------------------
+
+        
+
+
+        // 1. 실시간 데이터 동기화 (onSnapshot) — 로그인한 뒤에만 시작
+        let unsubscribeFolders = null;
+        let unsubscribeNotes = null;
+        let syncErrorShown = false; // 메모·폴더 두 곳에서 같은 오류가 나도 알림은 한 번만
+
+        function handleSyncError(error) {
+            console.error('메모 불러오기 실패:', error);
+            if (syncErrorShown) return;
+            syncErrorShown = true;
+            if (error.code === 'permission-denied') {
+                alert('메모를 불러올 권한이 없어요. 보안 규칙의 UID가 이 계정과 같은지 확인해 주세요.');
+            } else {
+                alert('메모를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
+            }
+        }
+
+        function startSync() {
+            stopSync();
+            syncErrorShown = false;
+            const foldersQ = query(foldersCollection, orderBy("createdAt", "asc"));
+            unsubscribeFolders = onSnapshot(foldersQ, (snapshot) => {
+                foldersData = [];
+                snapshot.forEach((doc) => {
+                    foldersData.push({ id: doc.id, ...doc.data() });
+                });
+                renderFolderMenu();
+            }, handleSyncError);
+
+            const q = query(notesCollection, orderBy("updatedAt", "desc"));
+            unsubscribeNotes = onSnapshot(q, (snapshot) => {
+                notesData = [];
+                snapshot.forEach((doc) => {
+                    notesData.push({ id: doc.id, ...doc.data() });
+                });
+                renderList();
+            }, handleSyncError);
+        }
+
+        function stopSync() {
+            if (unsubscribeFolders) { unsubscribeFolders(); unsubscribeFolders = null; }
+            if (unsubscribeNotes) { unsubscribeNotes(); unsubscribeNotes = null; }
+        }
+
+        // 로그아웃하면 화면에 남은 메모를 모두 지움 (공용 PC에서 다음 사람이 못 보게)
+        function clearScreen() {
+            clearTimeout(autoSaveTimeout);
+            notesData = [];
+            foldersData = [];
+            currentNoteId = null;
+            actionNoteId = null;
+            loadedBodyHtml = '';
+            localCache.memos = new Map(); // 로그아웃하면 화면용 메모 사본도 비움
+            localCache.folders = new Map();
+            currentFolderId = 'all';
+            currentFolderName = '모든 메모';
+            noteTitle.innerText = '';
+            noteBody.innerHTML = '';
+            dateDisplay.innerText = '';
+            searchInput.value = '';
+            emptyState.style.display = 'flex';
+            bottomToolbar.classList.remove('show');
+            newNoteBtnMobile.classList.remove('show');
+            sidebar.classList.remove('hide');
+            renderFolderMenu();
+            renderList();
+        }
+
+        // --- 로그인 / 로그아웃 ---
+        const loginScreen = document.getElementById('loginScreen');
+        const loginForm = document.getElementById('loginForm');
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginMsg = document.getElementById('loginMsg');
+        const keepLoginToggle = document.getElementById('keepLoginToggle');
+        const keepLoginSwitch = document.getElementById('keepLoginSwitch');
+        const accountEmail = document.getElementById('accountEmail');
+
+        function showLoginMessage(text, ok = false) {
+            loginMsg.innerText = text;
+            loginMsg.classList.toggle('ok', ok);
+        }
+
+        function authErrorMessage(error) {
+            if (error.status === 429 || /rate.?limit/i.test(error.code || '')) return '여러 번 시도해서 잠시 막혔어요. 잠시 후 다시 시도해 주세요.';
+            switch (error.code) {
+                case 'invalid_credentials':
+                    return '이메일 또는 비밀번호가 맞지 않아요.';
+                case 'email_not_confirmed':
+                    return '이메일 인증이 안 된 계정이에요. (가이드 2단계: 계정을 만들 때 Auto Confirm User를 켜세요)';
+                case 'validation_failed':
+                    return '이메일 형식이 올바르지 않아요.';
+                case 'user_banned':
+                    return '사용이 중지된 계정이에요.';
+            }
+            if (!error.status || error.name === 'AuthRetryableFetchError') return '인터넷 연결을 확인해 주세요.';
+            return `로그인하지 못했어요. (${error.code || error.message})`;
+        }
+
+        keepLoginToggle.addEventListener('click', () => {
+            const on = !keepLoginSwitch.classList.contains('on');
+            keepLoginSwitch.classList.toggle('on', on);
+            keepLoginToggle.setAttribute('aria-checked', String(on));
+        });
+        keepLoginToggle.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); keepLoginToggle.click(); }
+        });
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+            if (!email || !password) { showLoginMessage('이메일과 비밀번호를 입력해 주세요.'); return; }
+            loginBtn.disabled = true;
+            showLoginMessage('');
+            try {
+                // 기본은 "탭을 닫으면 로그아웃". 로그인 유지를 켰을 때만 브라우저에 계속 남김
+                keepLogin.set(keepLoginSwitch.classList.contains('on'));
+                const { error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                loginPassword.value = '';
+            } catch (error) {
+                showLoginMessage(authErrorMessage(error));
+            } finally {
+                loginBtn.disabled = false;
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            settingsMenu.classList.remove('show');
+            if (currentNoteId) await cleanupEmptyNote(currentNoteId); // 쓰던 내용 먼저 저장
+            stopSync();
+            await sb.auth.signOut({ scope: 'local' }); // 이 기기만 로그아웃 (휴대폰 등 다른 기기는 그대로)
+            keepLogin.set(false);
+        });
+
+        // --- 내보내기 (백업): 지금 불러온 메모와 폴더를 JSON 파일로 저장 ---
+        function toMillis(value) {
+            if (typeof value === 'number') return value;
+            if (value && typeof value.toMillis === 'function') return value.toMillis();
+            return value ?? null;
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            settingsMenu.classList.remove('show');
+            const backup = {
+                app: 'MEMO-TEN-O',
+                exportedAt: new Date().toISOString(),
+                memoCount: notesData.length,
+                folderCount: foldersData.length,
+                folders: foldersData.map(f => ({ ...f, createdAt: toMillis(f.createdAt) })),
+                memos: notesData.map(n => ({ ...n, createdAt: toMillis(n.createdAt), updatedAt: toMillis(n.updatedAt) }))
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `memo-ten-o-backup-${stamp}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            alert(`메모 ${backup.memoCount}개, 폴더 ${backup.folderCount}개를 내보냈어요.`);
+        });
+
+        // 로그인 상태가 바뀔 때마다: 메모 주인이면 메모를 불러오고, 아니면 로그인 화면
+        let signedInUserId = null;
+        async function handleSession(session) {
+            const user = session && session.user;
+            if (user && user.id === signedInUserId) return; // 토큰 갱신 등 같은 계정이면 그대로
+            if (!user) {
+                signedInUserId = null;
+                stopSync();
+                clearScreen();
+                accountEmail.textContent = '';
+                loginScreen.classList.remove('checking', 'hidden');
+                return;
+            }
+            // 이 계정이 "메모 주인"인지 서버에 확인 (보안 규칙이 막고 있지만, 빈 화면 대신 이유를 알려 주려고)
+            const { data: isOwner, error } = await sb.rpc('mto_is_owner');
+            if (error) {
+                // 인터넷이 끊긴 경우 등: 로그아웃시키지 않고, 다시 로그인을 누르면 다시 확인
+                loginScreen.classList.remove('checking', 'hidden');
+                showLoginMessage('계정을 확인하지 못했어요. 인터넷 연결을 확인하고 다시 로그인해 주세요.');
+                return;
+            }
+            if (isOwner !== true) {
+                showLoginMessage('이 계정은 메모 주인으로 정해지지 않았어요. (가이드 3단계)');
+                await sb.auth.signOut({ scope: 'local' });
+                return;
+            }
+            signedInUserId = user.id;
+            accountEmail.textContent = user.email || '';
+            loginScreen.classList.remove('checking');
+            loginScreen.classList.add('hidden');
+            startSync();
+        }
+        // Supabase 안내대로 이 콜백 안에서는 바로 기다리지 않고 다음 차례에 처리
+        sb.auth.onAuthStateChange((event, session) => { setTimeout(() => handleSession(session), 0); });
+
+        const folderModal = document.getElementById('folderModal');
+        const folderNameInput = document.getElementById('folderNameInput');
+        const confirmFolderBtn = document.getElementById('confirmFolderBtn');
+        const cancelFolderBtn = document.getElementById('cancelFolderBtn');
+
+        document.getElementById('createFolderBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            folderMenu.classList.remove('show');
+            folderNameInput.value = '';
+            folderModal.style.display = 'flex';
+            setTimeout(() => folderModal.classList.add('show'), 10);
+            setTimeout(() => folderNameInput.focus(), 100);
+        });
+
+        cancelFolderBtn.addEventListener('click', () => {
+            folderModal.classList.remove('show');
+            setTimeout(() => folderModal.style.display = 'none', 200);
+        });
+
+        confirmFolderBtn.addEventListener('click', async () => {
+            const name = folderNameInput.value.trim();
+            if (!name) return;
+            
+            try {
+                const docRef = await addDoc(foldersCollection, {
+                    name,
+                    createdAt: Date.now()
+                });
+                currentFolderId = docRef.id;
+                currentFolderName = name;
+                folderModal.classList.remove('show');
+            setTimeout(() => folderModal.style.display = 'none', 200);
+                renderList();
+            } catch (e) {
+                console.error("Error creating folder: ", e);
+                alert("폴더를 만들지 못했어요. 인터넷 연결을 확인하거나 다시 로그인해 주세요.");
+            }
+        });
+
+        // 폴더 이동 관련 로직
+        const moveFolderBtn = document.getElementById('moveFolderBtn');
+        const moveFolderModal = document.getElementById('moveFolderModal');
+        const moveFolderList = document.getElementById('moveFolderList');
+        const cancelMoveFolderBtn = document.getElementById('cancelMoveFolderBtn');
+
+        moveFolderBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!currentNoteId) return;
+            actionNoteId = currentNoteId;
+            
+            // 모달에 현재 폴더 목록 렌더링
+            moveFolderList.innerHTML = '';
+            
+            // '모든 메모' 항목 추가
+            const allItem = document.createElement('div');
+            allItem.className = 'menu-item';
+            allItem.style.padding = '12px 15px';
+            allItem.style.borderBottom = '1px solid var(--border-color)';
+            allItem.innerHTML = `<i data-lucide="folder" style="width: 16px; height: 16px;"></i><span>모든 메모 (기본)</span>`;
+            allItem.addEventListener('click', () => moveToFolder('all'));
+            moveFolderList.appendChild(allItem);
+            
+            // 동적 폴더 목록 추가
+            foldersData.forEach(folder => {
+                const item = document.createElement('div');
+                item.className = 'menu-item';
+                item.style.padding = '12px 15px';
+                item.style.borderBottom = '1px solid var(--border-color)';
+                item.innerHTML = `<i data-lucide="folder" style="width: 16px; height: 16px;"></i><span>${escapeHtml(folder.name)}</span>`;
+                item.addEventListener('click', () => moveToFolder(folder.id));
+                moveFolderList.appendChild(item);
+            });
+            
+            updateIcons();
+            moveFolderModal.style.display = 'flex';
+            setTimeout(() => moveFolderModal.classList.add('show'), 10);
+        });
+
+        cancelMoveFolderBtn.addEventListener('click', () => {
+            moveFolderModal.classList.remove('show');
+            setTimeout(() => moveFolderModal.style.display = 'none', 200);
+        });
+
+        async function moveToFolder(targetFolderId) {
+            if (!actionNoteId) return;
+            try {
+                const noteRef = doc(notesCollection, actionNoteId);
+                const folderIdValue = targetFolderId === 'all' ? null : targetFolderId;
+                await updateDoc(noteRef, {
+                    folderId: folderIdValue,
+                    updatedAt: Date.now()
+                });
+                moveFolderModal.classList.remove('show');
+            setTimeout(() => moveFolderModal.style.display = 'none', 200);
+                // 현재 폴더 뷰 업데이트
+                renderList();
+            } catch (e) {
+                console.error("Error moving folder: ", e);
+                alert("폴더 이동에 실패했습니다.");
+            }
+        }
+
+        function renderFolderMenu() {
+            const dynamicFolderList = document.getElementById('dynamicFolderList');
+            dynamicFolderList.innerHTML = '';
+
+            // '모든 메모' check update
+            const allNotesCheck = document.querySelector('.folder-item[data-id="all"] .folder-check');
+            if (allNotesCheck) {
+                allNotesCheck.style.opacity = currentFolderId === 'all' ? '1' : '0';
+            }
+
+            // '모든 메모' 클릭 핸들러 (한 번만 등록되도록 HTML에 있는 것 대신 여기서도 처리 가능하지만, 
+            // 이벤트 위임을 쓰는 것이 더 깔끔하므로 아래에서 통짜로 등록)
+
+            foldersData.forEach(folder => {
+                const item = document.createElement('div');
+                item.className = 'menu-item folder-item';
+                item.dataset.id = folder.id;
+                
+                const isSelected = currentFolderId === folder.id;
+                
+                item.innerHTML = `
+                    <i data-lucide="folder" style="width: 16px; height: 16px;"></i>
+                    <span style="display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(folder.name)}</span>
+                    <i data-lucide="check" class="folder-check" style="width: 16px; margin-left: auto; opacity: ${isSelected ? '1' : '0'};"></i>
+                `;
+                dynamicFolderList.appendChild(item);
+            });
+            
+            updateIcons();
+
+            // 모든 폴더 아이템에 이벤트 리스너 달기 (모든 메모 포함)
+            document.querySelectorAll('.folder-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const folderId = e.currentTarget.dataset.id;
+                    currentFolderId = folderId;
+                    
+                    if (folderId === 'all') {
+                        currentFolderName = '모든 메모';
+                    } else {
+                        const targetFolder = foldersData.find(f => f.id === folderId);
+                        currentFolderName = targetFolder ? targetFolder.name : '모든 메모';
+                    }
+                    
+                    folderMenu.classList.remove('show');
+                    renderFolderMenu(); // Update checks
+                    renderList();
+                });
+            });
+        }
+
+        // 2. 리스트 그리기 & 검색 필터링 적용
+        function renderList() {
+            const searchTerm = searchInput.value.toLowerCase();
+            pinnedList.innerHTML = '';
+            unpinnedList.innerHTML = '';
+            
+            let hasPinned = false;
+            
+            let filteredNotes = notesData;
+            if (currentFolderId !== 'all') {
+                filteredNotes = notesData.filter(note => note.folderId === currentFolderId);
+            }
+
+            document.getElementById('noteCountDisplay').innerText = `${filteredNotes.length}개의 메모`;
+            document.getElementById('unpinnedTitle').innerText = currentFolderName;
+
+            let sortedNotes = [...filteredNotes];
+            if (currentSort === 'dateDesc') {
+                sortedNotes.sort((a, b) => {
+                    const timeA = typeof a.updatedAt === 'number' ? a.updatedAt : (a.updatedAt?.toMillis?.() || 0);
+                    const timeB = typeof b.updatedAt === 'number' ? b.updatedAt : (b.updatedAt?.toMillis?.() || 0);
+                    return timeB - timeA;
+                });
+            } else if (currentSort === 'dateAsc') {
+                sortedNotes.sort((a, b) => {
+                    const timeA = typeof a.updatedAt === 'number' ? a.updatedAt : (a.updatedAt?.toMillis?.() || 0);
+                    const timeB = typeof b.updatedAt === 'number' ? b.updatedAt : (b.updatedAt?.toMillis?.() || 0);
+                    return timeA - timeB;
+                });
+            } else if (currentSort === 'titleAsc') {
+                sortedNotes.sort((a, b) => {
+                    const titleA = a.title || '새로운 메모';
+                    const titleB = b.title || '새로운 메모';
+                    return titleA.localeCompare(titleB);
+                });
+            }
+
+            sortedNotes.forEach(note => {
+                const titleStr = note.title || "새로운 메모";
+                // DOMParser 문서는 스크립트가 실행되지 않음 (예전처럼 div.innerHTML에 넣으면 목록만 그려도 실행될 수 있었음)
+                const parsedBody = new DOMParser().parseFromString(note.body || "", 'text/html');
+                parsedBody.querySelectorAll('script, style, template, noscript').forEach(el => el.remove());
+                const plainTextBody = parsedBody.body.textContent || "";
+
+                if (searchTerm && !titleStr.toLowerCase().includes(searchTerm) && !plainTextBody.toLowerCase().includes(searchTerm)) {
+                    return;
+                }
+
+                const li = document.createElement('li');
+                li.className = `note-item ${note.id === currentNoteId ? 'active' : ''}`;
+
+                const timeStr = formatTime(note.updatedAt);
+                const preview = plainTextBody.substring(0, 30) || "추가 텍스트 없음";
+
+                // 썸네일 이미지 추출 (안전한 주소만)
+                const firstImgSrc = Array.from(parsedBody.querySelectorAll('img')).map(img => img.getAttribute('src')).find(isSafeImageSrc);
+                const thumbnailHtml = firstImgSrc ? `<img class="note-item-thumbnail" src="${escapeHtml(firstImgSrc)}" alt="thumbnail">` : '';
+
+                // 고정 핀 아이콘
+                const pinIconHtml = note.isPinned ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-secondary);"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>` : '';
+
+                li.innerHTML = `
+                    <div class="note-item-actions left">
+                        <button class="note-swipe-btn pin" onclick="window.togglePinForNote(event, ${jsArg(note.id)})">
+                            ${note.isPinned 
+                                ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.68V6a3 3 0 0 0-3-3v0a3 3 0 0 0-3 3v4.68a2 2 0 0 1-1.11 1.87l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg><span class="btn-text">고정 해제</span>' 
+                                : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.68V6a3 3 0 0 0-3-3v0a3 3 0 0 0-3 3v4.68a2 2 0 0 1-1.11 1.87l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg><span class="btn-text">고정</span>'}
+                        </button>
+                    </div>
+                    <div class="note-item-actions">
+                        <button class="note-swipe-btn move" onclick="window.showMoveModalForNote(event, ${jsArg(note.id)})" title="폴더 이동">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path></svg>
+                            <span class="btn-text">이동</span>
+                        </button>
+                        <button class="note-swipe-btn delete" onclick="window.confirmDeleteForNote(event, ${jsArg(note.id)})" title="삭제">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            <span class="btn-text">삭제</span>
+                        </button>
+                    </div>
+                    <div class="note-item-front" onclick="window.selectNote(${jsArg(note.id)})">
+                        <div class="note-item-content">
+                            <div class="note-item-title-row">
+                                ${pinIconHtml}
+                                <div class="note-item-title">${escapeHtml(titleStr)}</div>
+                            </div>
+                            <div class="note-item-meta">
+                                <span class="note-item-time">${escapeHtml(timeStr)}</span>
+                                <span class="note-item-preview">${escapeHtml(preview)}</span>
+                            </div>
+                        </div>
+                        ${thumbnailHtml}
+                    </div>
+                `;
+                // li.onclick removed, moved to note-item-front
+
+                if (note.isPinned) {
+                    pinnedList.appendChild(li);
+                    hasPinned = true;
+                } else {
+                    unpinnedList.appendChild(li);
+                }
+            });
+
+            pinnedSection.style.display = hasPinned ? 'block' : 'none';
+            updateIcons();
+        }
+
+        
+        async function cleanupEmptyNote(id) {
+            if (!id) return;
+            
+            let titleStr = '';
+            let bodyStr = '';
+            let isCurrent = (id === currentNoteId);
+            
+            if (isCurrent) {
+                titleStr = noteTitle.innerText;
+                bodyStr = noteBody.innerHTML;
+            } else {
+                const note = notesData.find(n => n.id === id);
+                if (!note) return;
+                titleStr = note.title || '';
+                bodyStr = note.body || '';
+            }
+
+            // 이미지나 미디어 태그가 있으면 비어있지 않다고 판단
+            const isEmptyContent = (title, body) => {
+                const hasMedia = body.includes('<img') || body.includes('<video') || body.includes('<audio');
+                return title.trim() === '' && body.replace(/<[^>]*>?/gm, '').trim() === '' && !hasMedia;
+            };
+
+            if (isCurrent) {
+                const originalNote = notesData.find(n => n.id === id);
+                // 열어 보기만 하고 고치지 않았으면 저장도 삭제도 하지 않음
+                // (안전하지 않은 태그를 걸러 낸 화면 내용이 원본과 달라도 원본을 덮어쓰지 않게)
+                const unchanged = originalNote
+                    && (originalNote.title || '').trim() === titleStr.trim()
+                    && (bodyStr === loadedBodyHtml || bodyStr === (originalNote.body || ''));
+                if (unchanged && !isEmptyContent(originalNote.title || '', originalNote.body || '')) return;
+            }
+
+            if (isEmptyContent(titleStr, bodyStr)) {
+                try {
+                    await deleteDoc(doc(db, "memos", id));
+                    console.log('Empty note deleted:', id);
+                    if (isCurrent) clearTimeout(autoSaveTimeout);
+                } catch (e) {
+                    console.error('Error deleting empty note', e);
+                }
+            } else if (isCurrent) {
+                // 완전히 비어있지 않고 현재 메모라면, 백버튼 등으로 나갈 때 강제 즉시 저장
+                clearTimeout(autoSaveTimeout);
+                try {
+                    await updateDoc(doc(db, "memos", id), {
+                        title: titleStr.trim(),
+                        body: bodyStr,
+                        updatedAt: Date.now()
+                    });
+                } catch (e) {
+                    console.error("Force save failed:", e);
+                }
+            }
+        }
+
+        // 3. 메모 선택
+        window.selectNote = async function(id) {
+            if (window.wasSwipedRecently) return;
+            // If any swipe menu is currently open, close it and prevent note selection
+            if (window.activeSwipeItem) {
+                window.activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                window.activeSwipeItem.style.transform = 'translateX(0)';
+                window.activeSwipeItem = null;
+                return;
+            }
+            if (currentNoteId && currentNoteId !== id) {
+                await cleanupEmptyNote(currentNoteId);
+            }
+            currentNoteId = id;
+            const note = notesData.find(n => n.id === id);
+            if (!note) return;
+
+            noteTitle.innerText = note.title || "";
+            noteBody.innerHTML = sanitizeHtml(note.body); // 안전한 태그만 남겨서 표시
+            loadedBodyHtml = noteBody.innerHTML;
+            dateDisplay.innerText = formatFullDate(note.updatedAt);
+            
+            if (note.isPinned) {
+                pinBtn.classList.add('pinned');
+                // Lucide 아이콘은 내부 fill 속성 제어로 고정됨 표시
+            } else {
+                pinBtn.classList.remove('pinned');
+            }
+
+            emptyState.style.display = 'none';
+            bottomToolbar.classList.add('show');
+            newNoteBtnMobile.classList.add('show');
+            
+            renderList();
+
+            // 모바일에서 선택 시 에디터 창으로 넘어가기
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('hide');
+            }
+        }
+
+        // 4. 자동 저장 로직
+        function triggerAutoSave() {
+            if (!currentNoteId) return;
+            dateDisplay.innerText = "저장 중...";
+            clearTimeout(autoSaveTimeout);
+            
+            autoSaveTimeout = setTimeout(async () => {
+                try {
+                    await updateDoc(doc(db, "memos", currentNoteId), {
+                        title: noteTitle.innerText.trim(),
+                        body: noteBody.innerHTML,
+                        updatedAt: Date.now()
+                    });
+                    dateDisplay.innerText = formatFullDate(Date.now());
+                } catch (error) {
+                    console.error("저장 실패:", error);
+                    dateDisplay.innerText = "저장 실패";
+                }
+            }, 1000);
+        }
+
+        noteTitle.addEventListener('input', triggerAutoSave);
+        noteTitle.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                noteBody.focus();
+            }
+        });
+        noteBody.addEventListener('input', triggerAutoSave);
+        
+        // 체크리스트 클릭 처리
+        noteBody.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI' && e.offsetX < 32) {
+                e.target.classList.toggle('checked');
+                triggerAutoSave();
+            }
+        });
+
+        // 텍스트/이미지 붙여넣기 처리
+        noteBody.addEventListener('paste', async (e) => {
+            if (!currentNoteId) return;
+            
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            let hasImage = false;
+            
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    hasImage = true;
+                    e.preventDefault(); // 기본 이미지 붙여넣기 방지
+                    const file = item.getAsFile();
+                    if (!file) continue;
+                    
+                    const tempId = 'img-' + Date.now();
+                    const tempImgHtml = `<img id="${tempId}" src="https://placehold.co/150x150?text=Uploading..." alt="uploading">`;
+                    
+                    document.execCommand('insertHTML', false, tempImgHtml + '<br>');
+                    
+                    try {
+                        const base64Img = await new Promise((res, rej) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => res(reader.result.split(',')[1]);
+                        reader.onerror = e => rej(e);
+                    });
+                    const data = await callFunction('memo-upload', { image: base64Img });
+                    const downloadURL = data.url;
+                        const imgEl = document.getElementById(tempId);
+                        if (imgEl) {
+                            imgEl.src = downloadURL;
+                            imgEl.removeAttribute('id');
+                        }
+                        triggerAutoSave();
+                    } catch (error) {
+                        console.error("이미지 붙여넣기 실패:", error);
+                        const imgEl = document.getElementById(tempId);
+                        if (imgEl) imgEl.remove();
+                    }
+                }
+            }
+            
+            // 이미지가 없으면 (텍스트 복사시) 스타일 충돌 방지를 위해 플레인 텍스트로 삽입
+            if (!hasImage) {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                document.execCommand('insertText', false, text);
+            }
+        });
+
+        // 5. 새 메모 생성
+        const handleNewNote = async () => {
+            // 지금 열린 메모를 먼저 저장(또는 빈 메모면 정리)한 뒤에 편집 칸을 비움
+            // (원래는 제목 칸을 먼저 지워서, 열려 있던 메모의 제목이 빈 칸으로 저장됐음)
+            if (currentNoteId) await cleanupEmptyNote(currentNoteId);
+            currentNoteId = null;
+            noteTitle.innerText = "";
+            const newDoc = {
+                title: "",
+                body: "",
+                isPinned: false,
+                folderId: currentFolderId === 'all' ? null : currentFolderId,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            const docRef = await addDoc(notesCollection, newDoc);
+            selectNote(docRef.id);
+            noteTitle.focus();
+        };
+
+        document.getElementById('newNoteBtn').onclick = handleNewNote;
+        newNoteBtnMobile.onclick = handleNewNote;
+
+        // 6. 삭제 기능
+        const deleteModal = document.getElementById('deleteModal');
+        const modalText = document.getElementById('modalText');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        document.getElementById('deleteBtn').onclick = () => {
+            if (!currentNoteId) return;
+            actionNoteId = currentNoteId;
+            modalText.innerHTML = "이 메모를 삭제할까요?<br>삭제하면 되돌릴 수 없어요.";
+            confirmDeleteBtn.style.display = 'block';
+            cancelDeleteBtn.innerText = "취소";
+            deleteModal.style.display = 'flex';
+            setTimeout(() => deleteModal.classList.add('show'), 10);
+        };
+
+        cancelDeleteBtn.onclick = () => {
+            deleteModal.classList.remove('show');
+            setTimeout(() => deleteModal.style.display = 'none', 200);
+        };
+
+        confirmDeleteBtn.onclick = async () => {
+            deleteModal.classList.remove('show');
+            setTimeout(() => deleteModal.style.display = 'none', 200);
+            
+            const idToDelete = actionNoteId;
+            if (!idToDelete) return;
+            // 지우는 메모가 지금 편집 중인 메모일 때만 편집 화면을 닫음 (밀어서 다른 메모를 지울 때는 그대로)
+            const wasOpen = idToDelete === currentNoteId;
+            if (wasOpen) {
+                currentNoteId = null; // 먼저 null로 처리해 꼬임 방지
+                clearTimeout(autoSaveTimeout); // 실행 중인 자동 저장 중지
+            }
+
+            try {
+                await deleteDoc(doc(db, "memos", idToDelete));
+                actionNoteId = null;
+
+                if (wasOpen) {
+                    emptyState.style.display = 'flex';
+                    bottomToolbar.classList.remove('show');
+                    newNoteBtnMobile.classList.remove('show');
+
+                    // 모바일 환경이면 사이드바로 돌아가기
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('hide');
+                    }
+                }
+
+                renderList();
+            } catch (err) {
+                console.error("삭제 실패:", err);
+                
+                // 권한 오류 등을 모달로 표시
+                modalText.innerText = "삭제하지 못했어요. 인터넷 연결을 확인하거나 다시 로그인해 주세요.";
+                confirmDeleteBtn.style.display = 'none';
+                cancelDeleteBtn.innerText = "확인";
+                deleteModal.style.display = 'flex';
+                setTimeout(() => deleteModal.classList.add('show'), 10);
+                
+                if (wasOpen) currentNoteId = idToDelete; // 롤백
+            }
+        };
+
+        // 7. 핀(고정) 토글 기능
+        pinBtn.onclick = async () => {
+            if (!currentNoteId) return;
+            const note = notesData.find(n => n.id === currentNoteId);
+            const newState = !note.isPinned;
+            await updateDoc(doc(db, "memos", currentNoteId), { isPinned: newState });
+            if (newState) pinBtn.classList.add('pinned');
+            else pinBtn.classList.remove('pinned');
+        };
+
+        // 8. 전체 복사 기능
+        document.getElementById('copyAllBtn').onclick = async () => {
+            if (!currentNoteId) return;
+            const bodyText = noteBody.innerText;
+            const textToCopy = bodyText;
+            
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                alert("메모 전체가 복사되었습니다.");
+            } catch (err) {
+                console.error("복사 실패:", err);
+                alert("복사를 지원하지 않는 브라우저입니다.");
+            }
+        };
+
+        // 9. 이미지/파일 업로드 기능 (커스텀 백엔드)
+        const imageUpload = document.getElementById('imageUpload');
+        imageUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !currentNoteId) return;
+
+            const tempId = 'img-' + Date.now();
+            const tempImgHtml = `<img id="${tempId}" src="https://placehold.co/150x150?text=Uploading..." alt="uploading">`;
+            
+            noteBody.focus();
+            document.execCommand('insertHTML', false, tempImgHtml + '<br>');
+
+            try {
+                const base64Img = await new Promise((res, rej) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = () => res(reader.result.split(',')[1]);
+                        reader.onerror = e => rej(e);
+                    });
+                    const data = await callFunction('memo-upload', { image: base64Img });
+                    const downloadURL = data.url;
+
+                const imgEl = document.getElementById(tempId);
+                if (imgEl) {
+                    imgEl.src = downloadURL;
+                    imgEl.removeAttribute('id');
+                }
+                triggerAutoSave();
+            } catch (error) {
+                console.error("이미지 업로드 실패:", error);
+                alert("업로드 실패: 이미지를 업로드할 수 없습니다.");
+                const imgEl = document.getElementById(tempId);
+                if (imgEl) imgEl.remove();
+            }
+            e.target.value = ''; 
+        });
+
+        // 10. 마크업 (그리기) 기능
+        const markupBtn = document.getElementById('markupBtn');
+        const markupModal = document.getElementById('markupModal');
+        const markupCanvas = document.getElementById('markupCanvas');
+        const cancelMarkupBtn = document.getElementById('cancelMarkupBtn');
+        const doneMarkupBtn = document.getElementById('doneMarkupBtn');
+        const colorBtns = document.querySelectorAll('.color-btn');
+        const toolBtns = document.querySelectorAll('.markup-tool-btn');
+        
+        let mCtx = null;
+        let isMDrawing = false;
+        let mCurrentColor = '#000000';
+        let mCurrentTool = 'pen'; 
+
+        function resizeCanvas() {
+            if (!markupModal.classList.contains('show')) return;
+            const container = markupCanvas.parentElement;
+            markupCanvas.width = container.clientWidth;
+            markupCanvas.height = container.clientHeight;
+            if (mCtx) {
+                mCtx.lineCap = 'round';
+                mCtx.lineJoin = 'round';
+            }
+        }
+
+        if (markupBtn) {
+            markupBtn.onclick = () => {
+                markupModal.style.display = 'flex';
+                // 강제 리플로우
+                markupModal.offsetHeight;
+                markupModal.classList.add('show');
+                
+                mCtx = markupCanvas.getContext('2d');
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                // 기본값 초기화
+                mCtx.clearRect(0, 0, markupCanvas.width, markupCanvas.height);
+            };
+        }
+
+        if (cancelMarkupBtn) {
+            cancelMarkupBtn.onclick = () => {
+                markupModal.classList.remove('show');
+                setTimeout(() => markupModal.style.display = 'none', 300);
+                window.removeEventListener('resize', resizeCanvas);
+            };
+        }
+
+        if (doneMarkupBtn) {
+            doneMarkupBtn.onclick = () => {
+                const dataUrl = markupCanvas.toDataURL('image/png');
+                noteBody.focus();
+                
+                // 크기를 적절히 조절해서 삽입하기 위해 컨테이너 div와 함께 삽입 (간단히 이미지태그로)
+                const imgHtml = `<img src="${dataUrl}" style="max-width: 100%; border-radius: 12px; border: 1px solid var(--border-color); margin: 15px 0;">`;
+                document.execCommand('insertHTML', false, imgHtml + '<br>');
+                
+                triggerAutoSave();
+                cancelMarkupBtn.click();
+            };
+        }
+        
+        function getMPointerPos(e) {
+            const rect = markupCanvas.getBoundingClientRect();
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function mStartDrawing(e) {
+            isMDrawing = true;
+            const pos = getMPointerPos(e);
+            mCtx.beginPath();
+            mCtx.moveTo(pos.x, pos.y);
+            if(e.cancelable) e.preventDefault();
+        }
+
+        function mDraw(e) {
+            if (!isMDrawing) return;
+            const pos = getMPointerPos(e);
+            mCtx.lineTo(pos.x, pos.y);
+            
+            if (mCurrentTool === 'eraser') {
+                mCtx.globalCompositeOperation = 'destination-out';
+                mCtx.lineWidth = 20;
+            } else {
+                mCtx.globalCompositeOperation = 'source-over';
+                mCtx.strokeStyle = mCurrentColor;
+                mCtx.lineWidth = 3;
+            }
+            mCtx.stroke();
+            if(e.cancelable) e.preventDefault();
+        }
+
+        function mStopDrawing(e) {
+            if (isMDrawing) {
+                mCtx.closePath();
+                isMDrawing = false;
+            }
+        }
+
+        if (markupCanvas) {
+            markupCanvas.addEventListener('mousedown', mStartDrawing);
+            markupCanvas.addEventListener('mousemove', mDraw);
+            window.addEventListener('mouseup', mStopDrawing);
+            
+            markupCanvas.addEventListener('touchstart', mStartDrawing, {passive: false});
+            markupCanvas.addEventListener('touchmove', mDraw, {passive: false});
+            window.addEventListener('touchend', mStopDrawing);
+            window.addEventListener('touchcancel', mStopDrawing);
+        }
+
+        colorBtns.forEach(btn => {
+            btn.onclick = () => {
+                colorBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mCurrentColor = btn.dataset.color;
+                mCurrentTool = 'pen';
+                toolBtns.forEach(b => b.classList.remove('active'));
+                document.querySelector('.markup-tool-btn[data-tool="pen"]').classList.add('active');
+            };
+        });
+
+        toolBtns.forEach(btn => {
+            btn.onclick = () => {
+                toolBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mCurrentTool = btn.dataset.tool;
+            };
+        });
+
+        searchInput.addEventListener('input', renderList);
+
+        const goBackToList = async () => {
+            if (currentNoteId) {
+                await cleanupEmptyNote(currentNoteId);
+            }
+            sidebar.classList.remove('hide');
+            currentNoteId = null;
+            document.querySelectorAll('.note-item').forEach(el => el.classList.remove('active'));
+            emptyState.style.display = 'flex';
+            bottomToolbar.classList.remove('show');
+            newNoteBtnMobile.classList.remove('show');
+        };
+        document.getElementById('backBtn').onclick = goBackToList;
+
+        
+        // -- Swipe JS Logic --
+        let activeSwipeItem = null; window.activeSwipeItem = null;
+        let itemSwipeStartX = null;
+        let itemSwipeCurrentX = null;
+        let itemSwiping = false;
+        let isActuallySwiping = false;
+        window.wasSwipedRecently = false;
+        
+        const handleSwipeStart = (e, clientX) => {
+            const swipeFront = e.target.closest('.note-item-front');
+            const swipeBtn = e.target.closest('.note-swipe-btn');
+            if (swipeBtn) return; // Do not close or start swipe if clicking on an action button
+            if (activeSwipeItem && activeSwipeItem !== swipeFront) {
+                activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                activeSwipeItem.style.transform = 'translateX(0)';
+                activeSwipeItem = null; window.activeSwipeItem = null;
+            }
+            if (!swipeFront) return;
+            itemSwipeStartX = clientX;
+            itemSwiping = true;
+            isActuallySwiping = false;
+        };
+
+        const handleSwipeMove = (e, clientX) => {
+            if (!itemSwiping) return;
+            itemSwipeCurrentX = clientX;
+            const deltaX = itemSwipeCurrentX - itemSwipeStartX;
+            
+            if (!isActuallySwiping && Math.abs(deltaX) < 10) return;
+            isActuallySwiping = true;
+
+            const swipeFront = e.target.closest('.note-item-front');
+            if (!swipeFront) return;
+            
+            swipeFront.style.transition = 'none';
+            
+            if (deltaX < 0) {
+                const maxScroll = -230;
+                const transformX = Math.max(deltaX, maxScroll * 1.1);
+                swipeFront.style.transform = `translateX(${transformX}px)`;
+            } else if (deltaX > 0) {
+                const maxScroll = 110;
+                const transformX = Math.min(deltaX, maxScroll * 1.1);
+                swipeFront.style.transform = `translateX(${transformX}px)`;
+            }
+        };
+
+        const handleSwipeEnd = (e, clientX) => {
+            if (!itemSwiping) return;
+            itemSwiping = false;
+            
+            const swipeFront = e.target.closest('.note-item-front');
+            if (!swipeFront) return;
+            
+            swipeFront.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+            
+            if (!isActuallySwiping) {
+                return;
+            }
+            window.wasSwipedRecently = true;
+            setTimeout(() => window.wasSwipedRecently = false, 100);
+            
+            const deltaX = itemSwipeCurrentX !== null ? itemSwipeCurrentX - itemSwipeStartX : 0;
+            
+            if (deltaX < -70) {
+                swipeFront.style.transform = 'translateX(-230px)';
+                activeSwipeItem = swipeFront; window.activeSwipeItem = swipeFront;
+            } else if (deltaX > 40) {
+                swipeFront.style.transform = 'translateX(110px)';
+                activeSwipeItem = swipeFront; window.activeSwipeItem = swipeFront;
+            } else {
+                swipeFront.style.transform = 'translateX(0)';
+                if (activeSwipeItem === swipeFront) { activeSwipeItem = null; window.activeSwipeItem = null; }
+            }
+            itemSwipeStartX = null;
+            itemSwipeCurrentX = null;
+            isActuallySwiping = false;
+        };
+
+        document.addEventListener('touchstart', (e) => handleSwipeStart(e, e.touches[0].clientX), {passive: true});
+        document.addEventListener('touchmove', (e) => handleSwipeMove(e, e.touches[0].clientX), {passive: true});
+        document.addEventListener('touchend', (e) => handleSwipeEnd(e, e.changedTouches[0].clientX));
+
+        document.addEventListener('mousedown', (e) => handleSwipeStart(e, e.clientX));
+        document.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) handleSwipeMove(e, e.clientX);
+        });
+        document.addEventListener('mouseup', (e) => handleSwipeEnd(e, e.clientX));
+
+        let wheelTimeout;
+        let isWheelSwiping = false;
+        document.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 5) {
+                const swipeFront = e.target.closest('.note-item-front');
+                if (!swipeFront) return;
+                
+                if (isWheelSwiping) return;
+                
+                if (e.deltaX > 15) {
+                    isWheelSwiping = true;
+                    if (activeSwipeItem && activeSwipeItem !== swipeFront) {
+                        activeSwipeItem.style.transform = 'translateX(0)';
+                    }
+                    
+                    const currentTransform = swipeFront.style.transform || 'translateX(0)';
+                    swipeFront.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                    if (currentTransform.includes('110px')) {
+                        swipeFront.style.transform = 'translateX(0)';
+                        activeSwipeItem = null; window.activeSwipeItem = null;
+                    } else {
+                        swipeFront.style.transform = 'translateX(-230px)';
+                        activeSwipeItem = swipeFront; window.activeSwipeItem = swipeFront;
+                    }
+                    
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => isWheelSwiping = false, 400);
+                } else if (e.deltaX < -15) {
+                    isWheelSwiping = true;
+                    if (activeSwipeItem && activeSwipeItem !== swipeFront) {
+                        activeSwipeItem.style.transform = 'translateX(0)';
+                    }
+                    
+                    const currentTransform = swipeFront.style.transform || 'translateX(0)';
+                    swipeFront.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                    if (currentTransform.includes('-230px')) {
+                        swipeFront.style.transform = 'translateX(0)';
+                        activeSwipeItem = null; window.activeSwipeItem = null;
+                    } else {
+                        swipeFront.style.transform = 'translateX(110px)';
+                        activeSwipeItem = swipeFront; window.activeSwipeItem = swipeFront;
+                    }
+                    
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => isWheelSwiping = false, 400);
+                } else if (e.deltaX < -15) {
+                    isWheelSwiping = true;
+                    swipeFront.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                    swipeFront.style.transform = 'translateX(0)';
+                    if (activeSwipeItem === swipeFront) { activeSwipeItem = null; window.activeSwipeItem = null; }
+                    
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => isWheelSwiping = false, 400);
+                }
+            }
+        }, {passive: true});
+
+        // Add global handlers for the swipe buttons
+        
+        // 밀어서 나오는 '고정' 버튼 (예전 패치에서 이 함수가 빠져서 누르면 오류가 났음)
+        window.togglePinForNote = async (e, noteId) => {
+            e.stopPropagation();
+            if (activeSwipeItem) {
+                activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                activeSwipeItem.style.transform = 'translateX(0)';
+                activeSwipeItem = null; window.activeSwipeItem = null;
+            }
+            const note = notesData.find(n => n.id === noteId);
+            if (!note) return;
+            const newState = !note.isPinned;
+            await updateDoc(doc(db, "memos", noteId), { isPinned: newState });
+            if (noteId === currentNoteId) pinBtn.classList.toggle('pinned', newState);
+        };
+
+        window.swipeEditForNote = (e, noteId) => {
+            e.stopPropagation();
+            if (activeSwipeItem) {
+                activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                activeSwipeItem.style.transform = 'translateX(0)';
+                activeSwipeItem = null; window.activeSwipeItem = null;
+            }
+            selectNote(noteId);
+        };
+
+        window.showMoveModalForNote = (e, noteId) => {
+            e.stopPropagation();
+            if (activeSwipeItem) {
+                activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                activeSwipeItem.style.transform = 'translateX(0)';
+                activeSwipeItem = null; window.activeSwipeItem = null;
+            }
+            
+            // 이동할 메모만 따로 기억 (편집 중인 메모는 그대로 둠 — 예전엔 여기서 currentNoteId를 바꿔서
+            // 편집 화면의 내용이 밀었던 메모에 덮어써지거나 그 메모가 빈 메모로 지워질 수 있었음)
+            actionNoteId = noteId;
+            
+            // Show modal
+            const moveFolderList = document.getElementById('moveFolderList');
+            moveFolderList.innerHTML = '';
+            
+            const allItem = document.createElement('div');
+            allItem.className = 'menu-item';
+            allItem.style.padding = '12px 15px';
+            allItem.style.borderBottom = '1px solid var(--border-color)';
+            allItem.innerHTML = `<i data-lucide="folder" style="width: 16px; height: 16px;"></i><span>모든 메모 (기본)</span>`;
+            allItem.addEventListener('click', () => moveToFolder('all'));
+            moveFolderList.appendChild(allItem);
+            
+            foldersData.forEach(folder => {
+                const item = document.createElement('div');
+                item.className = 'menu-item';
+                item.style.padding = '12px 15px';
+                item.style.borderBottom = '1px solid var(--border-color)';
+                item.innerHTML = `<i data-lucide="folder" style="width: 16px; height: 16px;"></i><span>${escapeHtml(folder.name)}</span>`;
+                item.addEventListener('click', () => moveToFolder(folder.id));
+                moveFolderList.appendChild(item);
+            });
+            updateIcons();
+            
+            const moveFolderModal = document.getElementById('moveFolderModal');
+            moveFolderModal.style.display = 'flex';
+            setTimeout(() => moveFolderModal.classList.add('show'), 10);
+        };
+
+        window.confirmDeleteForNote = (e, noteId) => {
+            e.stopPropagation();
+            if (activeSwipeItem) {
+                activeSwipeItem.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                activeSwipeItem.style.transform = 'translateX(0)';
+                activeSwipeItem = null; window.activeSwipeItem = null;
+            }
+            
+            actionNoteId = noteId; // 지울 메모만 따로 기억 (편집 중인 메모는 그대로)
+            const modalText = document.getElementById('modalText');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            
+            modalText.innerHTML = "이 메모를 삭제할까요?<br>삭제하면 되돌릴 수 없어요.";
+            confirmDeleteBtn.style.display = 'block';
+            cancelDeleteBtn.innerText = "취소";
+            
+            const deleteModal = document.getElementById('deleteModal');
+            deleteModal.style.display = 'flex';
+            setTimeout(() => deleteModal.classList.add('show'), 10);
+        };
+
+        // --- 아이폰 및 데스크탑 스와이프 뒤로가기 로직 ---
+        let swipeStartX = null;
+        let swipeCurrentX = null;
+        let isSwiping = false;
+        const SWIPE_THRESHOLD = 80; 
+        const EDGE_THRESHOLD = 40; 
+        const swipeSidebar = document.getElementById('sidebar');
+
+        const onSwipeStart = (clientX) => {
+            
+            if (!swipeSidebar.classList.contains('hide')) return; // 이미 목록 화면이면 무시
+            if (clientX > EDGE_THRESHOLD) return; // 왼쪽 모서리에서만 작동
+            
+            swipeStartX = clientX;
+            isSwiping = true;
+            swipeSidebar.style.transition = 'none'; // 드래그 중엔 애니메이션 끄기
+        };
+
+        const onSwipeMove = (clientX) => {
+            if (!isSwiping) return;
+            swipeCurrentX = clientX;
+            const deltaX = Math.max(0, swipeCurrentX - swipeStartX);
+            
+            // 사이드바 너비
+            const sidebarWidth = swipeSidebar.offsetWidth;
+            const percentage = Math.min(100, (deltaX / sidebarWidth) * 100);
+            
+            // 왼쪽에서 스와이프하면 -100% 에서 0% 로 이동
+            swipeSidebar.style.transform = `translateX(-${100 - percentage}%)`;
+        };
+
+                const onSwipeEnd = () => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            
+            const deltaX = swipeCurrentX - swipeStartX;
+            
+            swipeSidebar.style.transition = ''; // 트랜지션 원상복구
+            
+            if (deltaX > SWIPE_THRESHOLD) {
+                goBackToList(); 
+                requestAnimationFrame(() => {
+                    swipeSidebar.style.transform = '';
+                });
+            } else {
+                swipeSidebar.style.transform = '';
+            }
+            
+            swipeStartX = null;
+            swipeCurrentX = null;
+        };
+
+        document.addEventListener('touchstart', (e) => onSwipeStart(e.touches[0].clientX), {passive: true});
+        document.addEventListener('touchmove', (e) => onSwipeMove(e.touches[0].clientX), {passive: true});
+        document.addEventListener('touchend', onSwipeEnd);
+        
+        document.addEventListener('mousedown', (e) => onSwipeStart(e.clientX));
+        document.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) onSwipeMove(e.clientX);
+        });
+        document.addEventListener('mouseup', onSwipeEnd);
+
+
+        function formatTime(timestamp) {
+            if (!timestamp) return "";
+            const date = new Date(timestamp);
+            const now = new Date();
+            if (date.toDateString() === now.toDateString()) {
+                return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            }
+            return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+        }
+
+        function formatFullDate(timestamp) {
+            if (!timestamp) return "";
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return new Date(timestamp).toLocaleDateString('ko-KR', options);
+        }
+
+        // 스크롤 시 상단 헤더 보더 효과
+        document.getElementById('editorContent').addEventListener('scroll', (e) => {
+            const header = document.getElementById('editorHeader');
+            if (e.target.scrollTop > 10) header.classList.add('scrolled');
+            else header.classList.remove('scrolled');
+        });
+
+    
+        // 투명 여백 클릭 시 커서 이동 로직
+        const bottomSpacer = document.querySelector('.editor-bottom-spacer');
+        if (bottomSpacer) {
+            bottomSpacer.addEventListener('click', () => {
+                const noteBody = document.getElementById('noteBody');
+                if (noteBody) {
+                    // preventScroll 옵션을 주어 브라우저가 멋대로 위로 스크롤하는 것을 방지
+                    noteBody.focus({ preventScroll: true });
+                    
+                    if (typeof window.getSelection !== 'undefined' && typeof document.createRange !== 'undefined') {
+                        const range = document.createRange();
+                        range.selectNodeContents(noteBody);
+                        range.collapse(false);
+                        const sel = window.getSelection();
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                    
+                    // 스크롤을 맨 아래로 스무스하게 이동시켜 커서가 보이도록 함
+                    const editorContent = document.getElementById('editorContent');
+                    if (editorContent) {
+                        editorContent.scrollTo({
+                            top: editorContent.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            });
+        }
+</script>
+</body>
+</html>
